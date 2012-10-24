@@ -8,75 +8,98 @@ module Libpq
   ffi_lib "libpq"
 
   typedef :uint, :oid
+  typedef :pointer, :int_array
+  typedef :pointer, :string_array
+  typedef :pointer, :oid_array
+  typedef :pointer, :filehandle # FILE*
+  typedef :pointer, :byte_array # unsigned char*
 
-  # 
-  # Option flags for PQcopyResult
-  # 
-  PG_COPYRES_ATTRS       = 0x01
-  PG_COPYRES_TUPLES      = 0x02 # Implies PG_COPYRES_ATTRS
-  PG_COPYRES_EVENTS      = 0x04
-  PG_COPYRES_NOTICEHOOKS = 0x08
+  typedef :int, :conn_status_type
+  typedef :int, :postgres_polling_status_type
+  typedef :int, :exec_status_type
+  typedef :int, :pg_transaction_status_type
+  typedef :int, :pg_verbosity
+  typedef :int, :pg_ping
 
-  # Application-visible enum types
+  # We use constants instead of FFI::Enums here, since the
+  # pg gem exposes the values to client code.
+  module Constants
+    # Option flags for PQcopyResult
+    PG_COPYRES_ATTRS       = 0x01
+    PG_COPYRES_TUPLES      = 0x02 # Implies PG_COPYRES_ATTRS
+    PG_COPYRES_EVENTS      = 0x04
+    PG_COPYRES_NOTICEHOOKS = 0x08
 
-  enum :conn_status_type, [
-    :ok,
-    :bad,
+    # Identifiers of error message fields.
+    # These were hiding in postgres_ext.h instead of
+    # libpq-fe.h.
+    PG_DIAG_SEVERITY = 'S'
+    PG_DIAG_SQLSTATE = 'C'
+    PG_DIAG_MESSAGE_PRIMARY = 'M'
+    PG_DIAG_MESSAGE_DETAIL = 'D'
+    PG_DIAG_MESSAGE_HINT = 'H'
+    PG_DIAG_STATEMENT_POSITION = 'P'
+    PG_DIAG_INTERNAL_POSITION = 'p'
+    PG_DIAG_INTERNAL_QUERY = 'q'
+    PG_DIAG_CONTEXT =  'W'
+    PG_DIAG_SOURCE_FILE =  'F'
+    PG_DIAG_SOURCE_LINE =  'L'
+    PG_DIAG_SOURCE_FUNCTION = 'R'
+
+    # enum ConnStatusType
+    CONNECTION_OK = 0
+    CONNECTION_BAD = 1
     # Non-blocking mode only below here
-    :started,             # Waiting for connection to be made.
-    :made,                # Connection OK; waiting to send.
-    :awaiting_response,   # Waiting for a response from the postmaster.
-    :auth_ok,             # Received authentication; waiting for backend startup. 
-    :setenv,              # Negotiating environment
-    :ssl_startup,         # Negotiating SSL.
-    :needed               # Internal state: connect() needed
-  ]
+    CONNECTION_STARTED = 2            # Waiting for connection to be made.
+    CONNECTION_MADE = 3               # Connection OK; waiting to send.
+    CONNECTION_AWAITING_RESPONSE = 4  # Waiting for a response from the postmaster.
+    CONNECTION_AUTH_OK = 5            # Received authentication; waiting for backend startup.
+    CONNECTION_SETENV = 6             # Negotiating environment
+    CONNECTION_SSL_STARTUP = 7        # Negotiating SSL.
+    CONNECTION_NEEDED = 8             # Internal state: connect() needed
 
-  enum :postgres_polling_status_type, [
-    :failed, 0,
-    :reading,        # These two indicate that one may
-    :writing,        # use select before polling again.
-    :ok,
-    :active          # unused; keep for awhile for backwards compatibility
-  ]
+    # enum PostgresPollingStatusType
+    PGRES_POLLING_FAILED = 0
+    PGRES_POLLING_READING = 1         # These two indicate that one may
+    PGRES_POLLING_WRITING = 2         # use select before polling again.
+    PGRES_POLLING_OK = 3
+    PGRES_POLLING_ACTIVE = 4          # unused; keep for awhile for backwards compatibility
 
-  enum :exec_status_type, [
-    :empty_query, 0,          # empty query string was executed
-    :command_ok,              # a query command that doesn't return
-                              # anything was executed properly by the
-                              # backend
-    :tuples_ok,               # a query command that returns tuples was
-                              # executed properly by the backend, PGresult
-                              # contains the result tuples
-    :copy_out,                # Copy Out data transfer in progress
-    :copy_in,                 # Copy In data transfer in progress
-    :bad_response,            # an unexpected response was recv'd from the backend
-    :nonfatal_error,          # notice or warning message
-    :fatal_error,             # query failed
-    :copy_both,               # Copy In/Out data transfer in progress
-    :single_tuple             # single tuple from larger resultset
-  ]
+    # enum ExecStatusType
+    PGRES_EMPTY_QUERY = 0             # empty query string was executed
+    PGRES_COMMAND_OK = 1              # a query command that doesn't return
+                                      # anything was executed properly by the
+                                      # backend
+    PGRES_TUPLES_OK = 2               # a query command that returns tuples was
+                                      # executed properly by the backend, PGresult
+                                      # contains the result tuples
+    PGRES_COPY_OUT = 3                # Copy Out data transfer in progress
+    PGRES_COPY_IN = 4                 # Copy In data transfer in progress
+    PGRES_BAD_RESPONSE = 5            # an unexpected response was recv'd from the backend
+    PGRES_NONFATAL_ERROR = 6          # notice or warning message
+    PGRES_FATAL_ERROR = 7             # query failed
+    PGRES_COPY_BOTH = 8               # Copy In/Out data transfer in progress
+    PGRES_SINGLE_TUPLE = 9            # single tuple from larger resultset
 
-  enum :pg_transaction_status_type, [
-    :idle,                  # connection idle
-    :active,                # command in progress
-    :intrans,               # idle, within transaction block
-    :inerror,               # idle, within failed transaction
-    :unknown                # cannot determine status
-  ]
+    # enum PGTransactionStatusType
+    PQTRANS_IDLE = 0                  # connection idle
+    PQTRANS_ACTIVE = 1                # command in progress
+    PQTRANS_INTRANS = 2               # idle, within transaction block
+    PQTRANS_INERROR = 3               # idle, within failed transaction
+    PQTRANS_UNKNOWN = 4               # cannot determine status
 
-  enum :pg_verbosity, [
-    :terse,             # single-line error messages
-    :default,           # recommended style
-    :verbose            # all the facts, ma'am
-  ]
+    # enum PGVerbosity
+    PQERRORS_TERSE = 0                # single-line error messages
+    PQERRORS_DEFAULT = 1              # recommended style
+    PQERRORS_VERBOSE = 2              # all the facts, ma'am
 
-  enum :pg_ping, [
-    :ok,              # server is accepting connections
-    :reject,          # server is alive but rejecting connections
-    :no_response,     # could not establish connection
-    :no_attempt       # connection not attempted (bad params)
-  ]
+    # enum PGPing
+    PQPING_OK = 0                     # server is accepting connections
+    PQPING_REJECT = 1                 # server is alive but rejecting connections
+    PQPING_NO_RESPONSE = 2            # could not establish connection
+    PQPING_NO_ATTEMPT = 3             # connection not attempted (bad params)
+  end
+  include Constants
 
   # PGconn encapsulates a connection to the backend.
   # The contents of this struct are not supposed to be known to applications.
@@ -101,11 +124,11 @@ module Libpq
   typedef :pointer, :pg_notify
 
   class PGNotify < FFI::Struct
-  	layout :relname, :string,	    # notification condition name
-  	       :be_pid,  :int,			  # process ID of notifying server process
-  	       :extra,   :string,			# notification parameter
-  	       # Fields below here are private to libpq; apps should not use 'em
-  	       :next,   :pg_notify 		# list link
+    layout :relname, :string,      # notification condition name
+           :be_pid,  :int,        # process ID of notifying server process
+           :extra,   :string,      # notification parameter
+           # Fields below here are private to libpq; apps should not use 'em
+           :next,   :pg_notify     # list link
   end
 
   # Function types for notice-handling callbacks
@@ -116,26 +139,26 @@ module Libpq
   typedef :char, :pqbool
 
   class PQPrintOpt < FFI::Struct
-    layout :header,       :pqbool,    # print output field headings and row count
-           :align,        :pqbool,    # fill align the fields
-           :standard,     :pqbool,    # old brain dead format
-           :html3,        :pqbool,    # output html tables
-           :expanded,     :pqbool,    # expand tables
-           :pager,        :pqbool,    # use pager for output if needed
-           :field_sep,    :string,    # field separator
-           :table_opt,    :string,    # insert to HTML <table ...>
-           :caption,      :string,    # HTML <caption>
-           :field_names,  :pointer    # null terminated array of replacement field names
+    layout :header,       :pqbool,      # print output field headings and row count
+           :align,        :pqbool,      # fill align the fields
+           :standard,     :pqbool,      # old brain dead format
+           :html3,        :pqbool,      # output html tables
+           :expanded,     :pqbool,      # expand tables
+           :pager,        :pqbool,      # use pager for output if needed
+           :field_sep,    :string,      # field separator
+           :table_opt,    :string,      # insert to HTML <table ...>
+           :caption,      :string,      # HTML <caption>
+           :field_names,  :string_array # null terminated array of replacement field names
   end
 
-  # ----------------
+  typedef :pointer, :pq_print_opt
+
   # Structure for the conninfo parameter definitions returned by PQconndefaults
   # or PQconninfoParse.
   #
   # All fields except "val" point at static strings which must not be altered.
   # "val" is either NULL or a malloc'd current-value string.  PQconninfoFree()
   # will release both the val strings and the PQconninfoOption array itself.
-  # ----------------
   class PQconninfoOption < FFI::Struct
     layout :keyword,  :string,
            :envvar,   :string,
@@ -148,10 +171,7 @@ module Libpq
 
   typedef :pointer, :pq_conninfo_option
 
-
-  # ----------------
   # PQArgBlock -- structure for PQfn() arguments
-  # ----------------
   class PQArgBlockU < FFI::Union
     layout :ptr,     :pointer,
            :integer, :int
@@ -165,9 +185,7 @@ module Libpq
 
   typedef :pointer, :pq_arg_block
 
-  #----------------
   #PGresAttDesc -- Data about a single attribute (column) of a query result
-  #----------------
   class PGresAttDesc < FFI::Struct
     layout :name,       :string,      # column name
            :tableid,    :oid,         # source table, if known
@@ -178,10 +196,16 @@ module Libpq
            :atttypemod, :int          # type-specific modifier info
   end
 
+  typedef :pointer, :pgres_att_desc_array
+
   # make a new client connection to the backend
   # Asynchronous (non-blocking)
   attach_function :PQconnectStart, [:string], :pg_conn
-  attach_function :PQconnectStartParams, [:pointer, :pointer, :int], :pg_conn
+  attach_function :PQconnectStartParams, [
+    :string_array,
+    :string_array,
+    :int
+  ], :pg_conn
   attach_function :PQconnectPoll, [:pg_conn], :postgres_polling_status_type
 
   # Synchronous (blocking)
@@ -203,19 +227,19 @@ module Libpq
 
   # close the current connection and free the PGconn data structure
   attach_function :PQfinish, [:pg_conn], :void
-  
+
   # get info about connection options known to PQconnectdb
   attach_function :PQconndefaults, [], :pq_conninfo_option
-  
+
   # parse connection options in same way as PQconnectdb
-  attach_function :PQconninfoParse, [:string, :pointer], :pq_conninfo_option
+  attach_function :PQconninfoParse, [:string, :string_array], :pq_conninfo_option
 
   # free the data structure returned by PQconndefaults() or PQconninfoParse()
   attach_function :PQconninfoFree, [:pq_conninfo_option], :void
 
   # close the current connection and restablish a new one with the same
   # parameters
-  # 
+  #
   # Asynchronous (non-blocking)
   attach_function :PQresetStart, [:pg_conn], :int
   attach_function :PQresetPoll, [:pg_conn], :postgres_polling_status_type
@@ -235,54 +259,57 @@ module Libpq
   # backwards compatible version of PQcancel; not thread-safe
   attach_function :PQrequestCancel, [:pg_conn], :int
 
-  # /* Accessor functions for PGconn objects */
-  attach_function :PQdb,      [:pg_conn], :string
-  attach_function :PQuser,    [:pg_conn], :string
-  attach_function :PQpass,    [:pg_conn], :string
-  attach_function :PQhost,    [:pg_conn], :string
-  attach_function :PQport,    [:pg_conn], :string
-  attach_function :PQtty,     [:pg_conn], :string
+  # Accessor functions for PGconn objects
+  attach_function :PQdb, [:pg_conn], :string
+  attach_function :PQuser, [:pg_conn], :string
+  attach_function :PQpass, [:pg_conn], :string
+  attach_function :PQhost, [:pg_conn], :string
+  attach_function :PQport, [:pg_conn], :string
+  attach_function :PQtty, [:pg_conn], :string
   attach_function :PQoptions, [:pg_conn], :string
-  attach_function :PQstatus,  [:pg_conn], :conn_status_type
+  attach_function :PQstatus, [:pg_conn], :conn_status_type
+  attach_function :PQtransactionStatus, [:pg_conn], :pg_transaction_status_type
+  attach_function :PQparameterStatus, [:pg_conn, :string], :string
+  attach_function :PQprotocolVersion, [:pg_conn], :int
+  attach_function :PQserverVersion, [:pg_conn], :int
+  attach_function :PQerrorMessage, [:pg_conn], :string
+  attach_function :PQsocket, [:pg_conn], :int
+  attach_function :PQbackendPID, [:pg_conn], :int
+  attach_function :PQconnectionNeedsPassword, [:pg_conn], :int
+  attach_function :PQconnectionUsedPassword, [:pg_conn], :int
+  attach_function :PQclientEncoding, [:pg_conn], :int
+  attach_function :PQsetClientEncoding, [:pg_conn, :string], :int
 
-  # extern PGTransactionStatusType PQtransactionStatus(const PGconn *conn);
-  # extern const char *PQparameterStatus(const PGconn *conn,
-  #           const char *paramName);
-  # extern int  PQprotocolVersion(const PGconn *conn);
-  # extern int  PQserverVersion(const PGconn *conn);
-  # extern char *PQerrorMessage(const PGconn *conn);
-  # extern int  PQsocket(const PGconn *conn);
-  # extern int  PQbackendPID(const PGconn *conn);
-  # extern int  PQconnectionNeedsPassword(const PGconn *conn);
-  # extern int  PQconnectionUsedPassword(const PGconn *conn);
-  # extern int  PQclientEncoding(const PGconn *conn);
-  # extern int  PQsetClientEncoding(PGconn *conn, const char *encoding);
-  # 
-  # /* Get the OpenSSL structure associated with a connection. Returns NULL for
-  #  * unencrypted connections or if any other TLS library is in use. */
-  # extern void *PQgetssl(PGconn *conn);
-  # 
-  # /* Tell libpq whether it needs to initialize OpenSSL */
-  # extern void PQinitSSL(int do_init);
-  # 
-  # /* More detailed way to tell libpq whether it needs to initialize OpenSSL */
-  # extern void PQinitOpenSSL(int do_ssl, int do_crypto);
-  # 
-  # /* Set verbosity for PQerrorMessage and PQresultErrorMessage */
-  # extern PGVerbosity PQsetErrorVerbosity(PGconn *conn, PGVerbosity verbosity);
-  # 
-  # /* Enable/disable tracing */
-  # extern void PQtrace(PGconn *conn, FILE *debug_port);
-  # extern void PQuntrace(PGconn *conn);
-  # 
-  # /* Override default notice handling routines */
-  # extern PQnoticeReceiver PQsetNoticeReceiver(PGconn *conn,
-  #           PQnoticeReceiver proc,
-  #           void *arg);
-  # extern PQnoticeProcessor PQsetNoticeProcessor(PGconn *conn,
-  #            PQnoticeProcessor proc,
-  #            void *arg);
-  # 
+  # Get the OpenSSL structure associated with a connection. Returns NULL for
+  # unencrypted connections or if any other TLS library is in use.
+  attach_function :PQgetssl, [:pg_conn], :pointer
+
+  # Tell libpq whether it needs to initialize OpenSSL
+  attach_function :PQinitSSL, [:int], :void
+
+  # More detailed way to tell libpq whether it needs to initialize OpenSSL */
+  attach_function :PQinitOpenSSL, [:int, :int], :void
+
+  # Set verbosity for PQerrorMessage and PQresultErrorMessage
+  attach_function :PQsetErrorVerbosity, [:pg_conn, :pg_verbosity], :pg_verbosity
+
+  # Enable/disable tracing
+  attach_function :PQtrace, [:pg_conn, :filehandle], :void
+  attach_function :PQuntrace, [:pg_conn], :void
+
+  # Override default notice handling routines
+  attach_function :PQsetNoticeReceiver, [
+    :pg_conn,
+    :pq_notice_receiver,
+    :pointer
+  ], :pq_notice_receiver
+
+  attach_function :PQsetNoticeProcessor, [
+    :pg_conn,
+    :pq_notice_processor,
+    :pointer
+  ], :pq_notice_receiver
+
   # /*
   #  *     Used to set callback that prevents concurrent access to
   #  *     non-thread safe functions that libpq needs.
@@ -291,250 +318,213 @@ module Libpq
   #  *     both within their app and for postgresql connections.
   #  */
   # typedef void (*pgthreadlock_t) (int acquire);
-  # 
-  # extern pgthreadlock_t PQregisterThreadLock(pgthreadlock_t newhandler);
-  # 
-  # /* === in fe-exec.c === */
-  # 
-  # /* Simple synchronous query */
-  # extern PGresult *PQexec(PGconn *conn, const char *query);
+  #
+  # attach_function pgthreadlock_t PQregisterThreadLock(pgthreadlock_t newhandler);
+
+  # Simple synchronous query
   attach_function :PQexec, [:pg_conn, :string], :pg_result
 
-  # extern PGresult *PQexecParams(PGconn *conn,
-  #        const char *command,
-  #        int nParams,
-  #        const Oid *paramTypes,
-  #        const char *const * paramValues,
-  #        const int *paramLengths,
-  #        const int *paramFormats,
-  #        int resultFormat);
-  # extern PGresult *PQprepare(PGconn *conn, const char *stmtName,
-  #       const char *query, int nParams,
-  #       const Oid *paramTypes);
-  # extern PGresult *PQexecPrepared(PGconn *conn,
-  #          const char *stmtName,
-  #          int nParams,
-  #          const char *const * paramValues,
-  #          const int *paramLengths,
-  #          const int *paramFormats,
-  #          int resultFormat);
-  # 
-  # /* Interface for multiple-result or asynchronous queries */
-  # extern int  PQsendQuery(PGconn *conn, const char *query);
-  # extern int PQsendQueryParams(PGconn *conn,
-  #           const char *command,
-  #           int nParams,
-  #           const Oid *paramTypes,
-  #           const char *const * paramValues,
-  #           const int *paramLengths,
-  #           const int *paramFormats,
-  #           int resultFormat);
-  # extern int PQsendPrepare(PGconn *conn, const char *stmtName,
-  #         const char *query, int nParams,
-  #         const Oid *paramTypes);
-  # extern int PQsendQueryPrepared(PGconn *conn,
-  #           const char *stmtName,
-  #           int nParams,
-  #           const char *const * paramValues,
-  #           const int *paramLengths,
-  #           const int *paramFormats,
-  #           int resultFormat);
-  # extern int  PQsetSingleRowMode(PGconn *conn);
-  # extern PGresult *PQgetResult(PGconn *conn);
-  # 
-  # /* Routines for managing an asynchronous query */
-  # extern int  PQisBusy(PGconn *conn);
-  # extern int  PQconsumeInput(PGconn *conn);
-  # 
-  # /* LISTEN/NOTIFY support */
-  # extern PGnotify *PQnotifies(PGconn *conn);
-  # 
-  # /* Routines for copy in/out */
-  # extern int  PQputCopyData(PGconn *conn, const char *buffer, int nbytes);
-  # extern int  PQputCopyEnd(PGconn *conn, const char *errormsg);
-  # extern int  PQgetCopyData(PGconn *conn, char **buffer, int async);
-  # 
-  # /* Deprecated routines for copy in/out */
-  # extern int  PQgetline(PGconn *conn, char *string, int length);
+  attach_function :PQexecParams, [
+    :pg_conn,
+    :string,     # command
+    :int,        # nParams
+    :pointer,    # paramTypes (oid array)
+    :pointer,    # paramValues (string array)
+    :pointer,    # paramLengths (int array)
+    :pointer,    # paramFormats (int array)
+    :int         # resultFormat
+  ], :pg_result
+
+  attach_function :PQprepare, [
+    :pg_conn,
+    :string,    # stmtName
+    :string,    # query
+    :int,       # nParams,
+    :oid_array  # paramTypes
+  ], :pg_result
+
+  attach_function :PQexecPrepared, [
+    :string,        # stmtName
+    :int,           # nParams
+    :string_array,  # paramValues
+    :int_array,     # paramLengths
+    :int_array,     # paramFormats
+    :int            # resultFormat
+  ], :pg_result
+
+  # Interface for multiple-result or asynchronous queries
+  attach_function :PQsendQuery, [:pg_conn, :string], :int
+
+  attach_function :PQsendQueryParams, [
+    :pg_conn,
+    :string,        # command
+    :int,           # nParams
+    :oid_array,     # paramTypes
+    :string_array,  # paramValues
+    :int_array,     # paramLengths
+    :int_array,     # paramFormats
+    :int            # resultFormat
+  ], :int
+
+  attach_function :PQsendPrepare, [
+    :pg_conn,
+    :string,    # stmtName
+    :string,    # query
+    :int,       # nParams
+    :oid_array  # paramTypes
+  ], :int
+
+  attach_function :PQsendQueryPrepared, [
+    :pg_conn,
+    :string,        # stmtName
+    :int,           # nParams
+    :string_array,  # paramValues
+    :int_array,     # paramLengths
+    :int_array,     # paramFormats
+    :int            # resultFormat
+  ], :int
+
+  attach_function :PQsetSingleRowMode, [:pg_conn], :int
+  attach_function :PQgetResult, [:pg_conn], :pg_result
+
+  # Routines for managing an asynchronous query
+  attach_function :PQisBusy, [:pg_conn], :int
+  attach_function :PQconsumeInput, [:pg_conn], :int
+
+  # LISTEN/NOTIFY support
+  attach_function :PQnotifies, [:pg_conn], :pg_notify
+
+  # Routines for copy in/out
+  attach_function :PQputCopyData, [:pg_conn, :string, :int], :int
+  attach_function :PQputCopyEnd,  [:pg_conn, :string], :int
+  attach_function :PQgetCopyData, [:pg_conn, :pointer, :int], :int
+
+  # Deprecated routines for copy in/out
+  # extern int  PQgetline(PGconn *conn, char *string, int length)
   # extern int  PQputline(PGconn *conn, const char *string);
   # extern int  PQgetlineAsync(PGconn *conn, char *buffer, int bufsize);
   # extern int  PQputnbytes(PGconn *conn, const char *buffer, int nbytes);
   # extern int  PQendcopy(PGconn *conn);
-  # 
-  # /* Set blocking/nonblocking connection to the backend */
-  # extern int  PQsetnonblocking(PGconn *conn, int arg);
-  # extern int  PQisnonblocking(const PGconn *conn);
-  # extern int  PQisthreadsafe(void);
-  # extern PGPing PQping(const char *conninfo);
-  # extern PGPing PQpingParams(const char *const * keywords,
-  #        const char *const * values, int expand_dbname);
-  # 
-  # /* Force the write buffer to be written (or at least try) */
-  # extern int  PQflush(PGconn *conn);
-  # 
-  # /*
-  #  * "Fast path" interface --- not really recommended for application
-  #  * use
-  #  */
-  # extern PGresult *PQfn(PGconn *conn,
-  #    int fnid,
-  #    int *result_buf,
-  #    int *result_len,
-  #    int result_is_int,
-  #    const PQArgBlock *args,
-  #    int nargs);
-  #
-  attach_function :PQfn, [
-    :pg_conn,
-    :int,
-    :pointer,
-    :pointer,
-    :int,
-    :pq_arg_block,
-    :int
-  ], :pg_result
 
-  attach_function :PQresultStatus, [:pg_result], :exec_status_type
-  attach_function :PQresStatus, [:exec_status_type], :string
-  attach_function :PQresultErrorMessage, [:pg_result], :string
-  attach_function :PQresultErrorField, [:pg_result, :int], :string
-  attach_function :PQntuples, [:pg_result], :int
-  attach_function :PQnfields, [:pg_result], :int
-  attach_function :PQbinaryTuples, [:pg_result], :int
-  attach_function :PQfname, [:pg_result, :int], :string
-  attach_function :PQfnumber, [:pg_result, :string], :int
-  attach_function :PQftable, [:pg_result, :int], :oid
-  attach_function :PQftablecol, [:pg_result, :int], :int
-  attach_function :PQfformat, [:pg_result, :int], :int
-  attach_function :PQftype, [:pg_result, :int], :oid
-  attach_function :PQfsize, [:pg_result, :int], :int
-  attach_function :PQfmod, [:pg_result, :int], :int
-  attach_function :PQcmdStatus, [:pg_result], :string
-  attach_function :PQoidStatus, [:pg_result], :string
-  attach_function :PQoidValue, [:pg_result], :oid
-  attach_function :PQcmdTuples, [:pg_result], :string
-  attach_function :PQgetvalue, [:pg_result, :int, :int], :string
-  attach_function :PQgetlength, [:pg_result, :int, :int], :int
-  attach_function :PQgetisnull, [:pg_result, :int, :int], :int
-  attach_function :PQnparams, [:pg_result], :int
-  attach_function :PQparamtype, [:pg_result, :int], :oid
+  # Set blocking/nonblocking connection to the backend
+  attach_function :PQsetnonblocking, [:pg_conn, :int], :int
+  attach_function :PQisnonblocking, [:pg_conn], :int
+  attach_function :PQisthreadsafe, [], :int
+  attach_function :PQping, [:string], :pg_ping
+  attach_function :PQpingParams, [:string_array, :string_array, :int], :pg_ping
 
-  # /* Describe prepared statements and portals */
-  # extern PGresult *PQdescribePrepared(PGconn *conn, const char *stmt);
-  # extern PGresult *PQdescribePortal(PGconn *conn, const char *portal);
-  # extern int  PQsendDescribePrepared(PGconn *conn, const char *stmt);
-  # extern int  PQsendDescribePortal(PGconn *conn, const char *portal);
-  # 
+  # Force the write buffer to be written (or at least try)
+  attach_function :PQflush, [:pg_conn], :int
+
+  # "Fast path" interface --- not really recommended for application use
+  attach_function :PQfn, [:pg_conn, :int, :pointer, :pointer, :int, :pq_arg_block, :int], :pg_result
+
+  # Accessor functions for PGresult objects
+  attach_function :PQresultStatus,        [:pg_result], :exec_status_type
+  attach_function :PQresStatus,           [:exec_status_type], :string
+  attach_function :PQresultErrorMessage,  [:pg_result], :string
+  attach_function :PQresultErrorField,    [:pg_result, :int], :string
+  attach_function :PQntuples,             [:pg_result], :int
+  attach_function :PQnfields,             [:pg_result], :int
+  attach_function :PQbinaryTuples,        [:pg_result], :int
+  attach_function :PQfname,               [:pg_result, :int], :string
+  attach_function :PQfnumber,             [:pg_result, :string], :int
+  attach_function :PQftable,              [:pg_result, :int], :oid
+  attach_function :PQftablecol,           [:pg_result, :int], :int
+  attach_function :PQfformat,             [:pg_result, :int], :int
+  attach_function :PQftype,               [:pg_result, :int], :oid
+  attach_function :PQfsize,               [:pg_result, :int], :int
+  attach_function :PQfmod,                [:pg_result, :int], :int
+  attach_function :PQcmdStatus,           [:pg_result], :string
+  attach_function :PQoidStatus,           [:pg_result], :string
+  attach_function :PQoidValue,            [:pg_result], :oid
+  attach_function :PQcmdTuples,           [:pg_result], :string
+  attach_function :PQgetvalue,            [:pg_result, :int, :int], :string
+  attach_function :PQgetlength,           [:pg_result, :int, :int], :int
+  attach_function :PQgetisnull,           [:pg_result, :int, :int], :int
+  attach_function :PQnparams,             [:pg_result], :int
+  attach_function :PQparamtype,           [:pg_result, :int], :oid
+
+  # Describe prepared statements and portals
+  attach_function :PQdescribePrepared,      [:pg_conn, :string], :pg_result
+  attach_function :PQdescribePortal,        [:pg_conn, :string], :pg_result
+  attach_function :PQsendDescribePrepared,  [:pg_conn, :string], :int
+  attach_function :PQsendDescribePortal,    [:pg_conn, :string], :int
+
   # /* Delete a PGresult */
-  # extern void PQclear(PGresult *res);
-  # 
+  attach_function :PQclear, [:pg_result], :void
+
   # /* For freeing other alloc'd results, such as PGnotify structs */
-  # extern void PQfreemem(void *ptr);
-  # 
+  attach_function :PQfreemem, [:pointer], :void
+
   # /* Exists for backward compatibility.  bjm 2003-03-24 */
-  # #define PQfreeNotify(ptr) PQfreemem(ptr)
-  # 
+  def self.PQfreeNotify(ptr)
+    self.PQfreemem(ptr)
+  end
+
   # /* Error when no password was given. */
   # /* Note: depending on this is deprecated; use PQconnectionNeedsPassword(). */
-  # #define PQnoPasswordSupplied  "fe_sendauth: no password supplied\n"
-  # 
+  PQnoPasswordSupplied = "fe_sendauth: no password supplied\n"
+
   # /* Create and manipulate PGresults */
-  # extern PGresult *PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status);
-  # extern PGresult *PQcopyResult(const PGresult *src, int flags);
-  # extern int  PQsetResultAttrs(PGresult *res, int numAttributes, PGresAttDesc *attDescs);
-  # extern void *PQresultAlloc(PGresult *res, size_t nBytes);
-  # extern int  PQsetvalue(PGresult *res, int tup_num, int field_num, char *value, int len);
-  # 
-  # /* Quoting strings before inclusion in queries. */
-  # extern size_t PQescapeStringConn(PGconn *conn,
-  #            char *to, const char *from, size_t length,
-  #            int *error);
-  # extern char *PQescapeLiteral(PGconn *conn, const char *str, size_t len);
-  # extern char *PQescapeIdentifier(PGconn *conn, const char *str, size_t len);
-  # extern unsigned char *PQescapeByteaConn(PGconn *conn,
-  #           const unsigned char *from, size_t from_length,
-  #           size_t *to_length);
-  # extern unsigned char *PQunescapeBytea(const unsigned char *strtext,
-  #         size_t *retbuflen);
-  # 
-  # /* These forms are deprecated! */
-  # extern size_t PQescapeString(char *to, const char *from, size_t length);
-  # extern unsigned char *PQescapeBytea(const unsigned char *from, size_t from_length,
-  #         size_t *to_length);
-  # 
-  # 
-  # 
-  # /* === in fe-print.c === */
-  # 
-  # extern void PQprint(FILE *fout,        /* output stream */
-  #     const PGresult *res,
-  #     const PQprintOpt *ps);  /* option structure */
-  # 
-  # /*
-  #  * really old printing routines
-  #  */
-  # extern void PQdisplayTuples(const PGresult *res,
-  #         FILE *fp,    /* where to send the output */
-  #         int fillAlign,  /* pad the fields with spaces */
-  #         const char *fieldSep,  /* field separator */
-  #         int printHeader,  /* display headers? */
-  #         int quiet);
-  # 
-  # extern void PQprintTuples(const PGresult *res,
-  #         FILE *fout,    /* output stream */
-  #         int printAttName, /* print attribute names */
-  #         int terseOutput,  /* delimiter bars */
-  #         int width);    /* width of column, if 0, use variable width */
-  # 
-  # 
-  # /* === in fe-lobj.c === */
-  # 
-  # /* Large-object access routines */
-  # extern int  lo_open(PGconn *conn, Oid lobjId, int mode);
-  # extern int  lo_close(PGconn *conn, int fd);
-  # extern int  lo_read(PGconn *conn, int fd, char *buf, size_t len);
-  # extern int  lo_write(PGconn *conn, int fd, const char *buf, size_t len);
-  # extern int  lo_lseek(PGconn *conn, int fd, int offset, int whence);
-  # extern pg_int64 lo_lseek64(PGconn *conn, int fd, pg_int64 offset, int whence);
-  # extern Oid  lo_creat(PGconn *conn, int mode);
-  # extern Oid  lo_create(PGconn *conn, Oid lobjId);
-  # extern int  lo_tell(PGconn *conn, int fd);
-  # extern pg_int64 lo_tell64(PGconn *conn, int fd);
-  # extern int  lo_truncate(PGconn *conn, int fd, size_t len);
-  # extern int  lo_truncate64(PGconn *conn, int fd, pg_int64 len);
-  # extern int  lo_unlink(PGconn *conn, Oid lobjId);
-  # extern Oid  lo_import(PGconn *conn, const char *filename);
-  # extern Oid  lo_import_with_oid(PGconn *conn, const char *filename, Oid lobjId);
-  # extern int  lo_export(PGconn *conn, Oid lobjId, const char *filename);
-  # 
-  # /* === in fe-misc.c === */
-  # 
-  # /* Get the version of the libpq library in use */
-  # extern int  PQlibVersion(void);
-  # 
-  # /* Determine length of multibyte encoded char at *s */
-  # extern int  PQmblen(const char *s, int encoding);
-  # 
-  # /* Determine display length of multibyte encoded char at *s */
-  # extern int  PQdsplen(const char *s, int encoding);
-  # 
-  # /* Get encoding id from environment variable PGCLIENTENCODING */
-  # extern int  PQenv2encoding(void);
-  # 
-  # /* === in fe-auth.c === */
-  # 
-  # extern char *PQencryptPassword(const char *passwd, const char *user);
-  # 
-  # /* === in encnames.c === */
-  # 
-  # extern int  pg_char_to_encoding(const char *name);
-  # extern const char *pg_encoding_to_char(int encoding);
-  # extern int  pg_valid_server_encoding_id(int encoding);
-  # 
-  # #ifdef __cplusplus
-  # }
-  # #endif
-  # 
-  # #endif   /* LIBPQ_FE_H */
-  # 
+  attach_function :PQmakeEmptyPGresult, [:pg_conn, :exec_status_type], :pg_result
+
+  # attach_function PGresult *PQcopyResult(const PGresult *src, int flags);
+  attach_function :PQcopyResult,      [:pg_result, :int ], :pg_result
+  attach_function :PQsetResultAttrs,  [:pg_result, :int, :pgres_att_desc_array], :int
+  attach_function :PQresultAlloc,     [:pg_result, :uint], :pointer
+  attach_function :PQsetvalue,        [:pg_result, :int, :int, :string, :int], :int
+
+  # Quoting strings before inclusion in queries.
+  attach_function :PQescapeStringConn,  [:pg_conn, :string, :string, :uint, :pointer], :uint
+  attach_function :PQescapeLiteral,     [:pg_conn, :string, :uint ], :string
+  attach_function :PQescapeIdentifier,  [:pg_conn, :string, :uint], :string
+  attach_function :PQescapeByteaConn,   [:pg_conn, :byte_array, :uint, :pointer], :pointer
+  attach_function :PQunescapeBytea,     [:byte_array, :pointer], :byte_array
+
+  # These forms are deprecated!
+  attach_function :PQescapeString,  [:string, :string, :uint], :uint
+  attach_function :PQescapeBytea,   [:pointer, :uint, :pointer], :pointer
+
+  attach_function :PQprint, [:filehandle, :pg_result, :pq_print_opt], :void
+
+  # really old printing routines
+  attach_function :PQdisplayTuples, [:pg_result, :filehandle, :int, :string, :int, :int], :void
+  attach_function :PQprintTuples,   [:pg_result, :filehandle, :int, :int, :int], :void
+
+  # Large-object access routines
+  attach_function :lo_open,             [:pg_conn, :oid, :int], :int
+  attach_function :lo_close,            [:pg_conn, :int], :int
+  attach_function :lo_read,             [:pg_conn, :int, :string, :uint], :int
+  attach_function :lo_write,            [:pg_conn, :int, :string, :uint], :int
+  attach_function :lo_lseek,            [:pg_conn, :int, :int, :int], :int
+#  attach_function :lo_lseek64,          [:pg_conn, :int, :int64, :int], :int64
+  attach_function :lo_creat,            [:pg_conn, :int], :oid
+  attach_function :lo_create,           [:pg_conn, :oid], :oid
+  attach_function :lo_tell,             [:pg_conn, :int], :int
+#  attach_function :lo_tell64,           [:pg_conn, :int], :int64
+  attach_function :lo_truncate,         [:pg_conn, :int, :uint], :int
+#  attach_function :lo_truncate64,       [:pg_conn, :int, :int64], :int
+  attach_function :lo_unlink,           [:pg_conn, :oid], :int
+  attach_function :lo_import,           [:pg_conn, :string ], :oid
+  attach_function :lo_import_with_oid,  [:pg_conn, :string, :oid], :oid
+  attach_function :lo_export,           [:pg_conn, :oid, :string], :int
+
+  # Get the version of the libpq library in use
+  attach_function :PQlibVersion, [], :int
+
+  # Determine length of multibyte encoded char at *s
+  attach_function :PQmblen, [:string, :int], :int
+
+  # Determine display length of multibyte encoded char at *s
+  attach_function :PQdsplen, [:string, :int], :int  #
+
+  # Get encoding id from environment variable PGCLIENTENCODING
+  attach_function :PQenv2encoding, [], :int
+
+  attach_function :PQencryptPassword, [:string, :string], :string
+
+  attach_function :pg_char_to_encoding, [:string], :int
+  attach_function :pg_encoding_to_char, [:int], :string
+  attach_function :pg_valid_server_encoding_id, [:int], :int
 end
