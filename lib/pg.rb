@@ -74,11 +74,20 @@ module PG
         return connopts.join(' ')
       end
 
-      def escape_string
+      # @deprecated
+      def escape_string(str)
+        len = str.length
+        buf = FFI::MemoryPointer.new(:char, 2*len+1)
+
+        Libpq.PQescapeString(buf, str, len)
+
+        # TODO: encoding
+        buf.read_string
       end
       alias_method :escape, :escape_string
 
       def escape_bytea
+
       end
 
       def unescape_bytea
@@ -125,9 +134,6 @@ module PG
     end
 
     # /******     PGconn INSTANCE METHODS: Connection Control     ******/
-    def initialize
-    end
-
     def connect_poll
     end
 
@@ -223,7 +229,15 @@ module PG
     def make_empty_pgresult
     end
 
-    def escape_string
+    def escape_string(str)
+      len = str.length
+      buf = FFI::MemoryPointer.new(:char, 2*len+1)
+      err = FFI::MemoryPointer.new(:int)
+
+      size = Libpq.PQescapeStringConn(@conn, buf, str, len, err)
+
+      raise_pg_error if err.read_int != 0
+      buf.read_string
     end
     alias_method :escape, :escape_string
 
@@ -503,9 +517,14 @@ module PG
         nil
       end
     end
+
+    def raise_pg_error
+      raise PG::Error, Libpq.PQerrorMessage(@conn), @conn
+    end
   end
 end
 
 # Backwards-compatible aliases
-PGconn = PG::Connection
-PGresult = PG::Result
+PGconn    = PG::Connection
+PGresult  = PG::Result
+PGError   = PG::Error

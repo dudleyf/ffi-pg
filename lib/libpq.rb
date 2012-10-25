@@ -491,22 +491,20 @@ module Libpq
 
   # /* Create and manipulate PGresults */
   attach_function :PQmakeEmptyPGresult, [:pg_conn, :exec_status_type], :pg_result
-
-  # attach_function PGresult *PQcopyResult(const PGresult *src, int flags);
   attach_function :PQcopyResult,      [:pg_result, :int ], :pg_result
   attach_function :PQsetResultAttrs,  [:pg_result, :int, :pgres_att_desc_array], :int
   attach_function :PQresultAlloc,     [:pg_result, :uint], :pointer
   attach_function :PQsetvalue,        [:pg_result, :int, :int, :string, :int], :int
 
   # Quoting strings before inclusion in queries.
-  attach_function :PQescapeStringConn,  [:pg_conn, :string, :string, :uint, :pointer], :uint
+  attach_function :PQescapeStringConn,  [:pg_conn, :buffer_out, :string, :uint, :pointer], :uint
   attach_function :PQescapeLiteral,     [:pg_conn, :string, :uint ], :string
   attach_function :PQescapeIdentifier,  [:pg_conn, :string, :uint], :string
   attach_function :PQescapeByteaConn,   [:pg_conn, :byte_array, :uint, :pointer], :pointer
   attach_function :PQunescapeBytea,     [:byte_array, :pointer], :byte_array
 
   # These forms are deprecated!
-  attach_function :PQescapeString,  [:string, :string, :uint], :uint
+  attach_function :PQescapeString,  [:buffer_out, :string, :uint], :uint
   attach_function :PQescapeBytea,   [:pointer, :uint, :pointer], :pointer
 
   attach_function :PQprint, [:filehandle, :pg_result, :pq_print_opt], :void
