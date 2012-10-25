@@ -8,6 +8,8 @@ module Libpq
   ffi_lib "libpq"
 
   typedef :uint, :oid
+  InvalidOid = 0
+
   typedef :pointer, :int_array
   typedef :pointer, :string_array
   typedef :pointer, :oid_array
@@ -21,15 +23,18 @@ module Libpq
   typedef :int, :pg_verbosity
   typedef :int, :pg_ping
 
+  # Option flags for PQcopyResult
+  PG_COPYRES_ATTRS       = 0x01
+  PG_COPYRES_TUPLES      = 0x02 # Implies PG_COPYRES_ATTRS
+  PG_COPYRES_EVENTS      = 0x04
+  PG_COPYRES_NOTICEHOOKS = 0x08
+
   # We use constants instead of FFI::Enums here, since the
   # pg gem exposes the values to client code.
-  module Constants
-    # Option flags for PQcopyResult
-    PG_COPYRES_ATTRS       = 0x01
-    PG_COPYRES_TUPLES      = 0x02 # Implies PG_COPYRES_ATTRS
-    PG_COPYRES_EVENTS      = 0x04
-    PG_COPYRES_NOTICEHOOKS = 0x08
-
+  # We need to include some of them in PG::Connection and
+  # some in PG::Result, so we define each set in its own
+  # module.
+  module ErrorMessageFieldConstants
     # Identifiers of error message fields.
     # These were hiding in postgres_ext.h instead of
     # libpq-fe.h.
@@ -45,7 +50,10 @@ module Libpq
     PG_DIAG_SOURCE_FILE =  'F'
     PG_DIAG_SOURCE_LINE =  'L'
     PG_DIAG_SOURCE_FUNCTION = 'R'
+  end
+  include ErrorMessageFieldConstants
 
+  module ConnStatusTypeConstants
     # enum ConnStatusType
     CONNECTION_OK = 0
     CONNECTION_BAD = 1
@@ -57,14 +65,20 @@ module Libpq
     CONNECTION_SETENV = 6             # Negotiating environment
     CONNECTION_SSL_STARTUP = 7        # Negotiating SSL.
     CONNECTION_NEEDED = 8             # Internal state: connect() needed
+  end
+  include ConnStatusTypeConstants
 
+  module PostgresPollingStatusTypeConstants
     # enum PostgresPollingStatusType
     PGRES_POLLING_FAILED = 0
     PGRES_POLLING_READING = 1         # These two indicate that one may
     PGRES_POLLING_WRITING = 2         # use select before polling again.
     PGRES_POLLING_OK = 3
     PGRES_POLLING_ACTIVE = 4          # unused; keep for awhile for backwards compatibility
+  end
+  include PostgresPollingStatusTypeConstants
 
+  module ExecStatusTypeConstants
     # enum ExecStatusType
     PGRES_EMPTY_QUERY = 0             # empty query string was executed
     PGRES_COMMAND_OK = 1              # a query command that doesn't return
@@ -80,26 +94,35 @@ module Libpq
     PGRES_FATAL_ERROR = 7             # query failed
     PGRES_COPY_BOTH = 8               # Copy In/Out data transfer in progress
     PGRES_SINGLE_TUPLE = 9            # single tuple from larger resultset
+  end
+  include ExecStatusTypeConstants
 
+  module PGTransactionStatusTypeConstants
     # enum PGTransactionStatusType
     PQTRANS_IDLE = 0                  # connection idle
     PQTRANS_ACTIVE = 1                # command in progress
     PQTRANS_INTRANS = 2               # idle, within transaction block
     PQTRANS_INERROR = 3               # idle, within failed transaction
     PQTRANS_UNKNOWN = 4               # cannot determine status
+  end
+  include PGTransactionStatusTypeConstants
 
+  module PGVerbosityConstants
     # enum PGVerbosity
     PQERRORS_TERSE = 0                # single-line error messages
     PQERRORS_DEFAULT = 1              # recommended style
     PQERRORS_VERBOSE = 2              # all the facts, ma'am
+  end
+  include PGVerbosityConstants
 
+  module PGPingConstants
     # enum PGPing
     PQPING_OK = 0                     # server is accepting connections
     PQPING_REJECT = 1                 # server is alive but rejecting connections
     PQPING_NO_RESPONSE = 2            # could not establish connection
     PQPING_NO_ATTEMPT = 3             # connection not attempted (bad params)
   end
-  include Constants
+  include PGPingConstants
 
   # PGconn encapsulates a connection to the backend.
   # The contents of this struct are not supposed to be known to applications.
