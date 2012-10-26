@@ -30,8 +30,6 @@ module PG
       alias_method :setdb, :new
       alias_method :setdblogin, :new
 
-      ### Quote the given +value+ for use in a connection-parameter string.
-      ### @param [String] value  the option value to be quoted.
       ### @return [String]
       def quote_connstr( value )
         return "'" + value.to_s.gsub( /[\\']/ ) {|m| '\\' + m } + "'"
@@ -112,15 +110,13 @@ module PG
     def initialize(*args, &block)
       conninfo = self.class.parse_connect_args(*args)
 
-      @conn = Libpq.PQconnectdb(conninfo)
+      @pg_conn = Libpq.PQconnectdb(conninfo)
 
-      if @conn.nil?
+      if @pg_conn.nil?
         raise PG::Error, "PQconnectdb() unable to allocate structure"
       end
 
-      if Libpq.PQstatus(@conn) == CONNECTION_BAD
-        raise PG::Error, Libpq.PQErrorMessage(@conn), @conn
-      end
+      raise_pg_error if Libpq.PQstatus(@pg_conn) == CONNECTION_BAD
 
       # TODO: Set client encoding on the connection
 
@@ -128,7 +124,7 @@ module PG
         begin
           yield self
         ensure
-          Libpq.PQfinish(@conn)
+          Libpq.PQfinish(@pg_conn)
         end
       end
     end
@@ -209,8 +205,8 @@ module PG
     end
 
     def exec(command, params={}, result_format=0, &block)
-      result_ptr = Libpq.PQexec(@conn, command)
-      result = Result.new(result_ptr)
+      result_ptr = Libpq.PQexec(@pg_conn, command)
+      Result.new(result_ptr)
     end
     alias_method :query, :exec
 
@@ -234,7 +230,7 @@ module PG
       buf = FFI::MemoryPointer.new(:char, 2*len+1)
       err = FFI::MemoryPointer.new(:int)
 
-      size = Libpq.PQescapeStringConn(@conn, buf, str, len, err)
+      Libpq.PQescapeStringConn(@pg_conn, buf, str, len, err)
 
       raise_pg_error if err.read_int != 0
       buf.read_string
@@ -394,6 +390,12 @@ module PG
     def lo_unlink
     end
     alias_method :lounlink, :lo_unlink
+
+    private
+
+    def raise_pg_error
+      raise PG::Error, Libpq.PQerrorMessage(@pg_conn), @pg_conn
+    end
   end
 end
 
@@ -404,122 +406,299 @@ module PG
     include Libpq::ErrorMessageFieldConstants
     InvalidOid = Libpq::InvalidOid
 
-    def initialize(result)
-      @result = result
+    def initialize(pg_result)
+      @pg_result = pg_result
     end
 
     #/******     PGresult INSTANCE METHODS: libpq     ******/
     def result_status
+      Libpq.PQresultStatus(@pg_result)
     end
 
-    def res_status
+    def res_status(status)
+      ret = Libpq.PQresStatus(status)
+      # TODO: encoding
+      ret
     end
 
     def result_error_message
+      ret = Libpq.PQresultErrorMessage(@pg_result)
+      # TODO: encoding
+      ret
     end
 
-    def result_error_field
+    def result_error_field(field_code)
+      ret = Libpq.PQresultErrorField(@pg_result, field_code)
+      # TODO: encoding
+      ret
     end
 
     def clear
+      Libpq.PQclear(@pg_result)
+      @pg_result = nil
     end
 
     def ntuples
+      Libpq.PQntuples(@pg_result)
     end
     alias_method :num_tuples, :ntuples
 
     def nfields
+      Libpq.PQnfields(@pg_result)
     end
     alias_method :num_fields, :nfields
 
-    def fname
+    def fname(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "invalid field number #{field_num}"
+      end
+
+      Libpq.PQfname(@pg_result, field_num)
     end
 
-    def fnumber
+    def fnumber(field_name)
+      field_num = Libpq.PQnfields(@pg_result, field_name)
+
+      if field_num == -1
+        raise ArgumentError, "Unknown field: #{field_name}"
+      end
+
+      field_num
     end
 
-    def ftable
+    def ftable(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "Invalid column index: #{field_num}"
+      end
+
+      Libpq.PQftable(@pg_result, field_num)
     end
 
-    def ftablecol
+    def ftablecol(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "Invalid column index: #{field_num}"
+      end
+
+      Libpq.PQftablecol(@pg_result, field_num)
     end
 
-    def fformat
+    def fformat(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "Column number is out of range: #{field_num}"
+      end
+
+      Libpq.PQfformat(@pg_result, field_num)
     end
 
-    def ftype
+    def ftype(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "invalid field number #{field_num}"
+      end
+
+      Libpq.PQftype(@pg_result, field_num)
     end
 
-    def fmod
+    def fmod(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "Column number is out of range: #{field_num}"
+      end
+
+      Libpq.PQfmod(@pg_result, field_num)
     end
 
-    def fsize
+    def fsize(field_num)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "invalid field number #{field_num}"
+      end
+
+      Libpq.PQfsize(@pg_result, field_num)
     end
 
-    def getvalue
+    def getvalue(tuple_num, field_num)
+      ntuples = Libpq.PQntuples(@pg_result)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if tuple_num < 0 || tuple_num >= ntuples
+        raise ArgumentError, "invalid tuple number #{tuple_num}"
+      end
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "invalid field number #{field_num}"
+      end
+
+      return nil if null?(tuple_num, field_num)
+      ret = Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
+      # TODO: encoding
+      ret
     end
 
-    def getisnull
+    def getisnull(tuple_num, field_num)
+      ntuples = Libpq.PQntuples(@pg_result)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if tuple_num < 0 || tuple_num >= ntuples
+        raise ArgumentError, "invalid tuple number #{tuple_num}"
+      end
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "invalid field number #{field_num}"
+      end
+
+      1 == Libpq.PQgetisnull(@pg_result, tuple_num, field_num)
     end
 
-    def getlength
+    def getlength(tuple_num, field_num)
+      ntuples = Libpq.PQntuples(@pg_result)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if tuple_num < 0 || tuple_num >= ntuples
+        raise ArgumentError, "invalid tuple number #{tuple_num}"
+      end
+
+      if field_num < 0 || field_num >= nfields
+        raise ArgumentError, "invalid field number #{field_num}"
+      end
+
+      Libpq.PQgetlength(@pg_result, tuple_num, field_num)
     end
 
     def nparams
+      Libpq.PQnparams(@pg_result)
     end
 
-    def paramtype
+    def paramtype(param_num)
+      Libpq.PQparamtype(@pg_result, param_num)
     end
 
     def cmd_status
+      ret = Libpq.PQcmdStatus(@pg_result)
+      # TODO: encoding
+      ret
     end
 
     def cmd_tuples
+      Libpq.PQcmdTuples(@pg_result)
     end
     alias_method :cmdtuples, :cmd_tuples
 
     def oid_value
+      oid = Libpq.PQoidValue(@pg_result)
+      oid == InvalidOid ? nil : oid
     end
 
     #/******     PGresult INSTANCE METHODS: other     ******/
-    def []
+    def [](tuple_num)
+      ntuples = Libpq.PQntuples(@pg_result)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if tuple_num < 0 || tuple_num >= ntuples
+        raise IndexError, "Index #{tuple_num} is out of range"
+      end
+
+      tuple = {}
+
+      (0...nfields).each do |field_num|
+        field_name = Libpq.PQfname(@pg_result, field_num)
+        # TODO: encoding
+        if null?(tuple_num, field_num)
+          tuple[field_name] = nil
+        else
+          val = Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
+          # TODO: encoding
+          tuple[field_name] = val
+        end
+      end
+
+      tuple
     end
 
-    def each
+    def each(&block)
+      ntuples = Libpq.PQntuples(@pg_result)
+
+      (0...ntuples).map do |tuple_num|
+        yield self[tuple_num]
+      end
+
+      self
     end
 
     def fields
-    end
+      nfields = Libpq.PQnfields(@pg_result)
 
-    def values
-      ntuples = Libpq.PQntuples(@result)
-      nfields = Libpq.PQnfields(@result)
-
-      (0...ntuples).map do |r|
-        [].tap do |row|
-          (0...nfields).map { |f| row[f] = value_at(r, f) }
-        end
+      (0...nfields).map do |field_num|
+        val = Libpq.PQfname(@pg_result, field_num)
+        # TODO: encoding
+        val
       end
     end
 
-    def column_values
+    def values
+      ntuples = Libpq.PQntuples(@pg_result)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      (0...ntuples).map do |tuple_num|
+        tuple = []
+
+        (0...nfields).map do |field_num|
+          tuple[field_num] = value_at(tuple_num, field_num)
+        end
+
+        tuple
+      end
     end
 
-    def field_values
+    def column_values(column_index)
+      ntuples = Libpq.PQntuples(@pg_result)
+      nfields = Libpq.PQnfields(@pg_result)
+
+      if column_index >= nfields
+        raise IndexError, "no column #{column_index} in result"
+      end
+
+      # TODO: encoding
+      (0...ntuples).map do |r|
+        Libpq.PQgetvalue(@pg_result, r, column_index)
+      end
+    end
+
+    def field_values(field_name)
+      ntuples = Libpq.PQntuples(@pg_result)
+      field_num = Libpq.PQfnumber(@pg_result, field_name)
+
+      if field_num < 0
+        raise IndexError, "no such field #{field_name} in result"
+      end
+
+      # TODO: encoding
+      (0...ntuples).map do |r|
+        Libpq.PQgetvalue(@pg_result, r, field_num)
+      end
     end
 
     private
 
-    def value_at(tuple, field)
-      if Libpq.PQgetisnull(@result, tuple, field) == 0
-        Libpq.PQgetvalue(@result, tuple, field)
-      else
-        nil
+    def value_at(tuple_num, field_num)
+      if !null?(tuple_num, field_num)
+        Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
       end
     end
 
-    def raise_pg_error
-      raise PG::Error, Libpq.PQerrorMessage(@conn), @conn
+    def null?(tuple_num, field_num)
+      1 == Libpq.PQgetisnull(@pg_result, tuple_num, field_num)
     end
   end
 end
