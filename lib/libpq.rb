@@ -12,7 +12,6 @@ module Libpq
   typedef :pointer, :int_array
   typedef :pointer, :string_array
   typedef :pointer, :oid_array
-  typedef :pointer, :filehandle # FILE*
   typedef :pointer, :byte_array # unsigned char*
 
   typedef :int, :conn_status_type
@@ -103,6 +102,9 @@ module Libpq
     PQPING_NO_ATTEMPT = 3             # connection not attempted (bad params)
   end
   include Constants
+
+  # FILE*
+  typedef :pointer, :stream
 
   # PGconn encapsulates a connection to the backend.
   # The contents of this struct are not supposed to be known to applications.
@@ -309,7 +311,7 @@ module Libpq
   attach_function :PQsetErrorVerbosity, [:pg_conn, :pg_verbosity], :pg_verbosity
 
   # Enable/disable tracing
-  attach_function :PQtrace, [:pg_conn, :filehandle], :void
+  attach_function :PQtrace, [:pg_conn, :stream], :void
   attach_function :PQuntrace, [:pg_conn], :void
 
   # Override default notice handling routines
@@ -499,11 +501,11 @@ module Libpq
   attach_function :PQescapeString,  [:buffer_out, :string, :uint], :uint
   attach_function :PQescapeBytea,   [:pointer, :uint, :pointer], :pointer
 
-  attach_function :PQprint, [:filehandle, :pg_result, :pq_print_opt], :void
+  attach_function :PQprint, [:stream, :pg_result, :pq_print_opt], :void
 
   # really old printing routines
-  attach_function :PQdisplayTuples, [:pg_result, :filehandle, :int, :string, :int, :int], :void
-  attach_function :PQprintTuples,   [:pg_result, :filehandle, :int, :int, :int], :void
+  attach_function :PQdisplayTuples, [:pg_result, :stream, :int, :string, :int, :int], :void
+  attach_function :PQprintTuples,   [:pg_result, :stream, :int, :int, :int], :void
 
   # Large-object access routines
   attach_function :lo_open,             [:pg_conn, :oid, :int], :int
