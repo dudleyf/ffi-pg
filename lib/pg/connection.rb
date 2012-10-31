@@ -1,3 +1,5 @@
+require 'libc'
+
 module PG
   class Connection
     # The order the options are passed to the ::connect method.
@@ -96,7 +98,9 @@ module PG
       '"' + str.gsub(/"/, '""') + '"'
     end
 
-    def self.connect_start
+    def self.connect_start(*args, &block)
+      instance = allocate
+      instance.init_pg_conn_async(*args, &block)
     end
 
     # call-seq:
@@ -141,12 +145,16 @@ module PG
     end
 
     def initialize(*args, &block)
+      init_pg_conn_sync(*args, &block)
+    end
+
+    def init_pg_conn_sync(*args, &block)
       conninfo = self.class.parse_connect_args(*args)
 
       @pg_conn = Libpq.PQconnectdb(conninfo)
 
       if @pg_conn.nil?
-        raise PG::Error, "PQconnectdb() unable to allocate structure"
+        raise_pg_error "PQconnectdb() unable to allocate structure"
       end
 
       if Libpq.PQstatus(@pg_conn) == PG::CONNECTION_BAD
@@ -159,30 +167,68 @@ module PG
         begin
           yield self
         ensure
-          Libpq.PQfinish(@pg_conn)
+          finish
         end
       end
+
+      self
+    end
+
+    def init_pg_conn_async(*args, &block)
+      conninfo = self.class.parse_connect_args(*args)
+
+      @pg_conn = Libpq.PQconnectStart(conninfo)
+
+      if @pg_conn.nil?
+        raise_pg_error "PQconnectStart() unable to allocate structure"
+      end
+
+      if Libpq.PQstatus(@pg_conn) == PG::CONNECTION_BAD
+        raise_pg_error
+      end
+
+      if block_given?
+        begin
+          yield self
+        ensure
+          finish
+        end
+      end
+
+      self
     end
 
 
     # /******     PGconn INSTANCE METHODS: Connection Control     ******/
     def connect_poll
+      Libpq.PQconnectPoll(@pg_conn)
     end
 
     def finish
+      Libpq.PQfinish(@pg_conn)
+      @pg_conn = nil
     end
     alias_method :close, :finish
 
+    def finished?
+      @pg_conn.nil?
+    end
+
     def reset
+      Libpq.PQreset(@pg_conn)
     end
 
     def reset_start
+      raise_pg_error "reset has failed" if 0 == Libpq.PQresetStart(@pg_conn)
+      nil
     end
 
     def reset_poll
+      Libpq.PQresetPoll(@pg_conn)
     end
 
     def conndefaults
+      self.class.conndefaults
     end
 
     # /******     PGconn INSTANCE METHODS: Connection Status     ******/
@@ -361,27 +407,55 @@ module PG
     end
 
     #/******     PGconn INSTANCE METHODS: Control Functions     ******/
-    def set_error_verbosity
+    def set_error_verbosity(in_verbosity)
+      Libpq.PQsetErrorVerbosity(@pg_conn, in_verbosity)
     end
 
-    def trace
+    def trace(stream)
+      unless stream.respond_to?(:fileno)
+        raise ArgumentError, "stream does not respond to method: fileno"
+      end
+
+      fileno = stream.fileno
+      if fileno.nil?
+        raise ArgumentError, "can't get file descriptor from stream"
+      end
+
+      new_fd = Libc.dup(fileno)
+      new_fp = Libc.fdopen(new_fd, "w")
+      raise ArgumentError, "stream is not writeable" if new_fp.nil?
+
+      @trace_stream = IO.new(new_fd)
+      Libpq.PQtrace(@pg_conn, new_fp)
+
+      nil
     end
 
     def untrace
+      Libpq.PQuntrace(@pg_conn)
+      @trace_stream.close
+      @trace_stream = nil
     end
 
     #/******     PGconn INSTANCE METHODS: Notice Processing     ******/
-    def set_notice_receiver
-    end
-
-    def set_notice_processor
-    end
+    # def set_notice_receiver
+    # end
+    #
+    # def set_notice_processor
+    # end
 
     #/******     PGconn INSTANCE METHODS: Other    ******/
     def get_client_encoding
+      Libpq.pg_encoding_to_char(Libpq.PQclientEncoding(@pg_conn))
     end
 
-    def set_client_encoding
+    def set_client_encoding(str)
+      check_type(str, string)
+      if -1 == Libpq.PQsetClientEncoding(@pg_conn, str)
+        raise_pg_error "Invalid encoding name: #{str}"
+      end
+
+      nil
     end
 
     def transaction

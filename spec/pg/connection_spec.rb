@@ -122,127 +122,127 @@ describe PG::Connection do
     }.to raise_error( ArgumentError, /extra positional parameter/i )
   end
 
-  # it "can connect asynchronously" do
-  #   tmpconn = described_class.connect_start( @conninfo )
-  #   tmpconn.should be_a( described_class )
-  #   socket = IO.for_fd( tmpconn.socket )
-  #   status = tmpconn.connect_poll
-  # 
-  #   while status != PG::PGRES_POLLING_OK
-  #     if status == PG::PGRES_POLLING_READING
-  #       select( [socket], [], [], 5.0 ) or
-  #         raise "Asynchronous connection timed out!"
-  # 
-  #     elsif status == PG::PGRES_POLLING_WRITING
-  #       select( [], [socket], [], 5.0 ) or
-  #         raise "Asynchronous connection timed out!"
-  #     end
-  #     status = tmpconn.connect_poll
-  #   end
-  # 
-  #   tmpconn.status.should == PG::CONNECTION_OK
-  #   tmpconn.finish
-  # end
-  # 
-  # it "can connect asynchronously for the duration of a block" do
-  #   conn = nil
-  # 
-  #   described_class.connect_start(@conninfo) do |tmpconn|
-  #     tmpconn.should be_a( described_class )
-  #     conn = tmpconn
-  #     socket = IO.for_fd(tmpconn.socket)
-  #     status = tmpconn.connect_poll
-  # 
-  #     while status != PG::PGRES_POLLING_OK
-  #       if status == PG::PGRES_POLLING_READING
-  #         if(not select([socket],[],[],5.0))
-  #           raise "Asynchronous connection timed out!"
-  #         end
-  #       elsif(status == PG::PGRES_POLLING_WRITING)
-  #         if(not select([],[socket],[],5.0))
-  #           raise "Asynchronous connection timed out!"
-  #         end
-  #       end
-  #       status = tmpconn.connect_poll
-  #     end
-  # 
-  #     tmpconn.status.should == PG::CONNECTION_OK
-  #   end
-  # 
-  #   conn.should be_finished()
-  # end
-  # 
-  # it "doesn't leave stale server connections after finish" do
-  #   described_class.connect(@conninfo).finish
-  #   sleep 0.5
-  #   res = @conn.exec(%[SELECT COUNT(*) AS n FROM pg_stat_activity
-  #             WHERE usename IS NOT NULL])
-  #   # there's still the global @conn, but should be no more
-  #   res[0]['n'].should == '1'
-  # end
-  # 
-  # 
-  # EXPECTED_TRACE_OUTPUT = %{
-  #   To backend> Msg Q
-  #   To backend> "SELECT 1 AS one"
-  #   To backend> Msg complete, length 21
-  #   From backend> T
-  #   From backend (#4)> 28
-  #   From backend (#2)> 1
-  #   From backend> "one"
-  #   From backend (#4)> 0
-  #   From backend (#2)> 0
-  #   From backend (#4)> 23
-  #   From backend (#2)> 4
-  #   From backend (#4)> -1
-  #   From backend (#2)> 0
-  #   From backend> D
-  #   From backend (#4)> 11
-  #   From backend (#2)> 1
-  #   From backend (#4)> 1
-  #   From backend (1)> 1
-  #   From backend> C
-  #   From backend (#4)> 13
-  #   From backend> "SELECT 1"
-  #   From backend> Z
-  #   From backend (#4)> 5
-  #   From backend> Z
-  #   From backend (#4)> 5
-  #   From backend> T
-  #   }.gsub( /^\t{2}/, '' ).lstrip
-  # 
-  # unless RUBY_PLATFORM =~ /mswin|mingw/
-  #   it "trace and untrace client-server communication" do
-  #     # be careful to explicitly close files so that the
-  #     # directory can be removed and we don't have to wait for
-  #     # the GC to run.
-  #     trace_file = TEST_DIRECTORY + "test_trace.out"
-  #     trace_io = trace_file.open( 'w', 0600 )
-  #     @conn.trace( trace_io )
-  #     trace_io.close
-  # 
-  #     res = @conn.exec("SELECT 1 AS one")
-  #     @conn.untrace
-  # 
-  #     res = @conn.exec("SELECT 2 AS two")
-  # 
-  #     trace_data = trace_file.read
-  # 
-  #     expected_trace_output = EXPECTED_TRACE_OUTPUT.dup
-  #     # For PostgreSQL < 9.0, the output will be different:
-  #     # -From backend (#4)> 13
-  #     # -From backend> "SELECT 1"
-  #     # +From backend (#4)> 11
-  #     # +From backend> "SELECT"
-  #     if @conn.server_version < 90000
-  #       expected_trace_output.sub!( /From backend \(#4\)> 13/, 'From backend (#4)> 11' )
-  #       expected_trace_output.sub!( /From backend> "SELECT 1"/, 'From backend> "SELECT"' )
-  #     end
-  # 
-  #     trace_data.should == expected_trace_output
-  #   end
-  # end
-  # 
+  it "can connect asynchronously" do
+    tmpconn = described_class.connect_start( @conninfo )
+    tmpconn.should be_a( described_class )
+    socket = IO.for_fd( tmpconn.socket )
+    status = tmpconn.connect_poll
+   
+    while status != PG::PGRES_POLLING_OK
+      if status == PG::PGRES_POLLING_READING
+        select( [socket], [], [], 5.0 ) or
+          raise "Asynchronous connection timed out!"
+   
+      elsif status == PG::PGRES_POLLING_WRITING
+        select( [], [socket], [], 5.0 ) or
+          raise "Asynchronous connection timed out!"
+      end
+      status = tmpconn.connect_poll
+    end
+   
+    tmpconn.status.should == PG::CONNECTION_OK
+    tmpconn.finish
+  end
+   
+  it "can connect asynchronously for the duration of a block" do
+    conn = nil
+  
+    described_class.connect_start(@conninfo) do |tmpconn|
+      tmpconn.should be_a( described_class )
+      conn = tmpconn
+      socket = IO.for_fd(tmpconn.socket)
+      status = tmpconn.connect_poll
+  
+      while status != PG::PGRES_POLLING_OK
+        if status == PG::PGRES_POLLING_READING
+          if(not select([socket],[],[],5.0))
+            raise "Asynchronous connection timed out!"
+          end
+        elsif(status == PG::PGRES_POLLING_WRITING)
+          if(not select([],[socket],[],5.0))
+            raise "Asynchronous connection timed out!"
+          end
+        end
+        status = tmpconn.connect_poll
+      end
+  
+      tmpconn.status.should == PG::CONNECTION_OK
+    end
+  
+    conn.should be_finished()
+  end
+  
+  it "doesn't leave stale server connections after finish" do
+    described_class.connect(@conninfo).finish
+    sleep 0.5
+    res = @conn.exec(%[SELECT COUNT(*) AS n FROM pg_stat_activity
+              WHERE usename IS NOT NULL])
+    # there's still the global @conn, but should be no more
+    res[0]['n'].should == '1'
+  end
+  
+  
+  EXPECTED_TRACE_OUTPUT = %{
+To backend> Msg Q
+To backend> "SELECT 1 AS one"
+To backend> Msg complete, length 21
+From backend> T
+From backend (#4)> 28
+From backend (#2)> 1
+From backend> "one"
+From backend (#4)> 0
+From backend (#2)> 0
+From backend (#4)> 23
+From backend (#2)> 4
+From backend (#4)> -1
+From backend (#2)> 0
+From backend> D
+From backend (#4)> 11
+From backend (#2)> 1
+From backend (#4)> 1
+From backend (1)> 1
+From backend> C
+From backend (#4)> 13
+From backend> "SELECT 1"
+From backend> Z
+From backend (#4)> 5
+From backend> Z
+From backend (#4)> 5
+From backend> T
+}.gsub( /^\t{2}/, '' ).lstrip
+  
+  unless RUBY_PLATFORM =~ /mswin|mingw/
+    it "trace and untrace client-server communication" do
+      # be careful to explicitly close files so that the
+      # directory can be removed and we don't have to wait for
+      # the GC to run.
+      trace_file = TEST_DIRECTORY + "test_trace.out"
+      trace_io = trace_file.open( 'w', 0600 )
+      @conn.trace( trace_io )
+      trace_io.close
+  
+      res = @conn.exec("SELECT 1 AS one")
+      @conn.untrace
+  
+      res = @conn.exec("SELECT 2 AS two")
+  
+      trace_data = trace_file.read
+  
+      expected_trace_output = EXPECTED_TRACE_OUTPUT.dup
+      # For PostgreSQL < 9.0, the output will be different:
+      # -From backend (#4)> 13
+      # -From backend> "SELECT 1"
+      # +From backend (#4)> 11
+      # +From backend> "SELECT"
+      if @conn.server_version < 90000
+        expected_trace_output.sub!( /From backend \(#4\)> 13/, 'From backend (#4)> 11' )
+        expected_trace_output.sub!( /From backend> "SELECT 1"/, 'From backend> "SELECT"' )
+      end
+  
+      trace_data.should == expected_trace_output
+    end
+  end
+
   # it "allows a query to be cancelled" do
   #   error = false
   #   @conn.send_query("SELECT pg_sleep(1000)")
@@ -253,7 +253,7 @@ describe PG::Connection do
   #   end
   #   error.should == true
   # end
-  # 
+
   # it "automatically rolls back a transaction started with described_class#transaction if an exception " +
   #    "is raised" do
   #   # abort the per-example transaction so we can test our own
