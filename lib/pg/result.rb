@@ -3,8 +3,14 @@ module PG
     include Enumerable
     include Constants
 
-    def initialize(pg_result)
+    def initialize(pg_result, connection)
       @pg_result = pg_result
+      @connection = connection
+      #TODO: encoding
+    end
+
+    def check(*args)
+
     end
 
     #/******     PGresult INSTANCE METHODS: libpq     ******/

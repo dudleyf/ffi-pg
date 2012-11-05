@@ -88,8 +88,8 @@ module PG
     end
 
     def self.encrypt_password(pass, user)
-      PG::Error.check_type(pass, String)
       PG::Error.check_type(user, String)
+      PG::Error.check_type(pass, String)
 
       Libpq.PQencryptPassword(pass, user)
     end
@@ -197,7 +197,6 @@ module PG
 
       self
     end
-
 
     # /******     PGconn INSTANCE METHODS: Connection Control     ******/
     def connect_poll
@@ -412,6 +411,10 @@ module PG
     end
 
     def trace(stream)
+      # TODO: this won't work on JRuby yet. IO#fileno returns the JRuby
+      # internal fileno, which is not the actual posix fileno. We'll have
+      # figure out how to get to the actual file descriptor.
+
       unless stream.respond_to?(:fileno)
         raise ArgumentError, "stream does not respond to method: fileno"
       end
@@ -438,11 +441,11 @@ module PG
     end
 
     #/******     PGconn INSTANCE METHODS: Notice Processing     ******/
-    # def set_notice_receiver
-    # end
-    #
-    # def set_notice_processor
-    # end
+    def set_notice_receiver
+    end
+
+    def set_notice_processor
+    end
 
     #/******     PGconn INSTANCE METHODS: Other    ******/
     def get_client_encoding
@@ -459,6 +462,24 @@ module PG
     end
 
     def transaction
+      if block_given?
+        result = exec("BEGIN")
+        result.check
+        begin
+          yield
+        rescue Exception => e
+          result = exec("ROLLBACK")
+          result.check
+          raise e
+        else
+          result = exec("COMMIT")
+          result.check
+        end
+      else
+        raise ArgumentError, "Must supply block for PG::Connection#transaction"
+      end
+
+      nil
     end
 
     def block
