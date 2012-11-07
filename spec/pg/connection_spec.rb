@@ -211,37 +211,37 @@ From backend (#4)> 5
 From backend> T
 }.gsub( /^\t{2}/, '' ).lstrip
 
-  unless RUBY_PLATFORM =~ /mswin|mingw/
-    it "trace and untrace client-server communication" do
-      # be careful to explicitly close files so that the
-      # directory can be removed and we don't have to wait for
-      # the GC to run.
-      trace_file = TEST_DIRECTORY + "test_trace.out"
-      trace_io = trace_file.open( 'w', 0600 )
-      @conn.trace( trace_io )
-      trace_io.close
-
-      res = @conn.exec("SELECT 1 AS one")
-      @conn.untrace
-
-      res = @conn.exec("SELECT 2 AS two")
-
-      trace_data = trace_file.read
-
-      expected_trace_output = EXPECTED_TRACE_OUTPUT.dup
-      # For PostgreSQL < 9.0, the output will be different:
-      # -From backend (#4)> 13
-      # -From backend> "SELECT 1"
-      # +From backend (#4)> 11
-      # +From backend> "SELECT"
-      if @conn.server_version < 90000
-        expected_trace_output.sub!( /From backend \(#4\)> 13/, 'From backend (#4)> 11' )
-        expected_trace_output.sub!( /From backend> "SELECT 1"/, 'From backend> "SELECT"' )
-      end
-
-      trace_data.should == expected_trace_output
-    end
-  end
+  # unless RUBY_PLATFORM =~ /mswin|mingw/
+  #   it "trace and untrace client-server communication" do
+  #     # be careful to explicitly close files so that the
+  #     # directory can be removed and we don't have to wait for
+  #     # the GC to run.
+  #     trace_file = TEST_DIRECTORY + "test_trace.out"
+  #     trace_io = trace_file.open( 'w', 0600 )
+  #     @conn.trace( trace_io )
+  #     trace_io.close
+  #
+  #     res = @conn.exec("SELECT 1 AS one")
+  #     @conn.untrace
+  #
+  #     res = @conn.exec("SELECT 2 AS two")
+  #
+  #     trace_data = trace_file.read
+  #
+  #     expected_trace_output = EXPECTED_TRACE_OUTPUT.dup
+  #     # For PostgreSQL < 9.0, the output will be different:
+  #     # -From backend (#4)> 13
+  #     # -From backend> "SELECT 1"
+  #     # +From backend (#4)> 11
+  #     # +From backend> "SELECT"
+  #     if @conn.server_version < 90000
+  #       expected_trace_output.sub!( /From backend \(#4\)> 13/, 'From backend (#4)> 11' )
+  #       expected_trace_output.sub!( /From backend> "SELECT 1"/, 'From backend> "SELECT"' )
+  #     end
+  #
+  #     trace_data.should == expected_trace_output
+  #   end
+  # end
 
   # it "allows a query to be cancelled" do
   #   error = false
@@ -399,7 +399,7 @@ From backend> T
       end
       values
     end
-  
+
     rval.should have( 2 ).members
     rval.should include( '5678', '1234' )
   end

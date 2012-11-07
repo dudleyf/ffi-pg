@@ -414,33 +414,9 @@ module PG
     end
 
     def trace(stream)
-      # TODO: this won't work on JRuby yet. IO#fileno returns the JRuby
-      # internal fileno, which is not the actual posix fileno. We'll have
-      # figure out how to get to the actual file descriptor.
-
-      unless stream.respond_to?(:fileno)
-        raise ArgumentError, "stream does not respond to method: fileno"
-      end
-
-      fileno = stream.fileno
-      if fileno.nil?
-        raise ArgumentError, "can't get file descriptor from stream"
-      end
-
-      new_fd = Libc.dup(fileno)
-      new_fp = Libc.fdopen(new_fd, "w")
-      raise ArgumentError, "stream is not writeable" if new_fp.nil?
-
-      @trace_stream = IO.new(new_fd)
-      Libpq.PQtrace(@pg_conn, new_fp)
-
-      nil
     end
 
     def untrace
-      Libpq.PQuntrace(@pg_conn)
-      @trace_stream.close
-      @trace_stream = nil
     end
 
     #/******     PGconn INSTANCE METHODS: Notice Processing     ******/
