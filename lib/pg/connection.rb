@@ -304,9 +304,12 @@ module PG
     # def getssl
     # end
 
-    def exec(command, params={}, result_format=0, &block)
-      result_ptr = Libpq.PQexec(@pg_conn, command)
-      Result.new(result_ptr)
+    def exec(command, params=nil, result_format=0, &block)
+      pg_result = Libpq.PQexec(@pg_conn, command)
+      result = Result.new(pg_result, self)
+      result.check
+      return yield result if block_given?
+      result
     end
     alias_method :query, :exec
 

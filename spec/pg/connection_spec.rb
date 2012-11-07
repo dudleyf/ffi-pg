@@ -2,13 +2,13 @@
 #encoding: utf-8
 
 BEGIN {
-	require 'pathname'
+  require 'pathname'
 
-	basedir = Pathname( __FILE__ ).dirname.parent.parent
-	libdir = basedir + 'lib'
+  basedir = Pathname( __FILE__ ).dirname.parent.parent
+  libdir = basedir + 'lib'
 
-	$LOAD_PATH.unshift( basedir.to_s ) unless $LOAD_PATH.include?( basedir.to_s )
-	$LOAD_PATH.unshift( libdir.to_s ) unless $LOAD_PATH.include?( libdir.to_s )
+  $LOAD_PATH.unshift( basedir.to_s ) unless $LOAD_PATH.include?( basedir.to_s )
+  $LOAD_PATH.unshift( libdir.to_s ) unless $LOAD_PATH.include?( libdir.to_s )
 }
 
 require 'rspec'
@@ -388,21 +388,21 @@ From backend> T
   #   @conn.wait_for_notify( 10 ).should == 'woo'
   #   @conn.exec( 'UNLISTEN woo' )
   # end
-  #
-  # it "yields the result if block is given to exec" do
-  #   rval = @conn.exec( "select 1234::int as a union select 5678::int as a" ) do |result|
-  #     values = []
-  #     result.should be_kind_of( PG::Result )
-  #     result.ntuples.should == 2
-  #     result.each do |tuple|
-  #       values << tuple['a']
-  #     end
-  #     values
-  #   end
-  #
-  #   rval.should have( 2 ).members
-  #   rval.should include( '5678', '1234' )
-  # end
+
+  it "yields the result if block is given to exec" do
+    rval = @conn.exec( "select 1234::int as a union select 5678::int as a" ) do |result|
+      values = []
+      result.should be_kind_of( PG::Result )
+      result.ntuples.should == 2
+      result.each do |tuple|
+        values << tuple['a']
+      end
+      values
+    end
+  
+    rval.should have( 2 ).members
+    rval.should include( '5678', '1234' )
+  end
   #
   #
   # it "correctly finishes COPY queries passed to #async_exec" do
