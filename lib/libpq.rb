@@ -361,6 +361,7 @@ module Libpq
   ], :pg_result
 
   attach_function :PQexecPrepared, [
+    :pg_conn,
     :string,        # stmtName
     :int,           # nParams
     :string_array,  # paramValues

@@ -3,7 +3,7 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |gem|
-  gem.name          = "pg-ffi"
+  gem.name          = "ffi-pg"
   gem.version       = "0.1.0"
   gem.authors       = ["Dudley Flanders"]
   gem.email         = ["dudley@steambone.org"]

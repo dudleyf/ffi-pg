@@ -306,20 +306,126 @@ module PG
 
     def exec(command, params=nil, result_format=0, &block)
       pg_result = Libpq.PQexec(@pg_conn, command)
-      result = Result.new(pg_result, self)
-      result.check
+      result = Result.checked(pg_result, self)
       return yield result if block_given?
       result
     end
     alias_method :query, :exec
 
-    def prepare
+    #
+    # call-seq:
+    #    conn.prepare(stmt_name, sql [, param_types ] ) -> PG::Result
+    #
+    # Prepares statement _sql_ with name _name_ to be executed later.
+    # Returns a PG::Result instance on success.
+    # On failure, it raises a PG::Error.
+    #
+    # +param_types+ is an optional parameter to specify the Oids of the
+    # types of the parameters.
+    #
+    # If the types are not specified, they will be inferred by PostgreSQL.
+    # Instead of specifying type oids, it's recommended to simply add
+    # explicit casts in the query to ensure that the right type is used.
+    #
+    # For example: "SELECT $1::int"
+    #
+    # PostgreSQL bind parameters are represented as $1, $1, $2, etc.,
+    # inside the SQL query.
+    def prepare(name, command, in_paramtypes=nil)
+      PG::Error.check_type(name, String)
+      PG::Error.check_type(command, String)
+
+      nparams = 0
+      param_types = nil
+      unless in_paramtypes.nil?
+        PG::Error.check_type(in_paramtypes, Array)
+
+        nparams = in_paramtypes.length
+        param_types = FFI::MemoryPointer(:oid, nparams)
+        param_types.write_array_of_uint(0, in_paramtypes)
+      end
+
+      pg_result = Libpq.PQprepare(@pg_conn, name, command, nparams, param_types)
+      Result.checked(pg_result, self)
     end
 
-    def exec_prepared
+    # call-seq:
+    #    conn.exec_prepared(statement_name [, params, result_format ] ) -> PG::Result
+    #    conn.exec_prepared(statement_name [, params, result_format ] ) {|pg_result| block }
+    #
+    # Execute prepared named statement specified by _statement_name_.
+    # Returns a PG::Result instance on success.
+    # On failure, it raises a PG::Error.
+    #
+    # +params+ is an array of the optional bind parameters for the
+    # SQL query. Each element of the +params+ array may be either:
+    #   a hash of the form:
+    #     {:value  => String (value of bind parameter)
+    #      :format => Fixnum (0 for text, 1 for binary)
+    #     }
+    #   or, it may be a String. If it is a string, that is equivalent to the hash:
+    #     { :value => <string value>, :format => 0 }
+    #
+    # PostgreSQL bind parameters are represented as $1, $1, $2, etc.,
+    # inside the SQL query. The 0th element of the +params+ array is bound
+    # to $1, the 1st element is bound to $2, etc. +nil+ is treated as +NULL+.
+    #
+    # The optional +result_format+ should be 0 for text results, 1
+    # for binary.
+    #
+    # If the optional code block is given, it will be passed <i>result</i> as an argument,
+    # and the PG::Result object will  automatically be cleared when the block terminates.
+    # In this instance, <code>conn.exec_prepared</code> returns the value of the block.
+    def exec_prepared(name, params=[], result_format=0)
+      PG::Error.check_type(name, String)
+      PG::Error.check_type(params, Array)
+
+      nparams = params.length
+      param_values  = FFI::MemoryPointer.new(:pointer, nparams)
+      param_lengths = FFI::MemoryPointer.new(:int, nparams)
+      param_formats = FFI::MemoryPointer.new(:int, nparams)
+
+      params.each_with_index do |param, i|
+        if param.kind_of?(Hash)
+          param_value  = param[:value].nil? ? nil : param[:value].to_s
+          param_format = param[:format]
+        else
+          param_value = param.nil? ? nil : param.to_s
+          param_format = 0
+        end
+
+        if param_value.nil?
+          param_values.put_pointer(i, nil)
+          param_lengths.put_int(i, 0)
+        else
+          PG::Error.check_type(param_value, String)
+
+          param_values.put_pointer(i, FFI::MemoryPointer.from_string(param_value))
+          param_lengths.put_int(i, param_value.length)
+        end
+
+        if param_format.nil?
+          param_formats.put_int(i, 0)
+        else
+          param_formats.put_int(i, param_format.to_i)
+        end
+      end
+
+      pg_result = Libpq.PQexecPrepared(@pg_conn, name, nparams, param_values, param_lengths, param_formats, result_format)
+      result = Result.checked(pg_result, self)
+      return yield result if block_given?
+      result
     end
 
-    def describe_prepared
+    # call-seq:
+    #    conn.describe_prepared( statement_name ) -> PG::Result
+    #
+    # Retrieve information about the prepared statement
+    # _statement_name_.
+    def describe_prepared(name)
+      PG::Error.check_type(name, String)
+      pg_result = Libpq.PQdescribePrepared(@pg_conn, name)
+      Result.checked(pg_result, self)
     end
 
     def describe_portal
@@ -432,7 +538,7 @@ module PG
     end
 
     def set_client_encoding(str)
-      check_type(str, string)
+      PG::Error.check_type(str, String)
       if -1 == Libpq.PQsetClientEncoding(@pg_conn, str)
         raise_pg_error "Invalid encoding name: #{str}"
       end

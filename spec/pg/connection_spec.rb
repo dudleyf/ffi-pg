@@ -882,4 +882,30 @@ From backend> T
   #   end
   #
   # end
+
+  context "prepared statements" do
+    it "#prepare" do
+      r = @conn.prepare('s1', 'select $1::int')
+      r.should be_kind_of(PG::Result)
+      r.result_status.should == PG::Constants::PGRES_COMMAND_OK
+    end
+
+    it "#exec_prepared" do
+      @conn.prepare('s2', 'select $1::int as n')
+      r = @conn.exec_prepared('s2', [33])
+      r.result_status.should == PG::Constants::PGRES_TUPLES_OK
+      r.ntuples.should == 1
+      r.nfields.should == 1
+      r.fname(0).should == "n"
+      r.getvalue(0, 0).should == "33"
+    end
+
+    it "#describe_prepared" do
+      @conn.prepare('s3', 'select $1::int as n')
+      r = @conn.describe_prepared('s3')
+      r.result_status.should == PG::Constants::PGRES_COMMAND_OK
+      r.nfields.should == 1
+      r.fname(0).should == "n"
+    end
+  end
 end

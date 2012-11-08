@@ -3,6 +3,12 @@ module PG
     include Enumerable
     include Constants
 
+    def self.checked(pg_result, connection)
+      result = new(pg_result, connection)
+      result.check
+      result
+    end
+
     def initialize(pg_result, connection)
       @pg_result = pg_result
       @connection = connection
