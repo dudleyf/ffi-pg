@@ -364,7 +364,7 @@ module PG
         PG::Error.check_type(in_paramtypes, Array)
 
         nparams = in_paramtypes.length
-        param_types = FFI::MemoryPointer(:oid, nparams)
+        param_types = FFI::MemoryPointer.new(:oid, nparams)
         param_types.write_array_of_uint(0, in_paramtypes)
       end
 
@@ -431,7 +431,23 @@ module PG
     def describe_portal
     end
 
-    def make_empty_pgresult
+    # call-seq:
+    #    conn.make_empty_pgresult( status ) -> PG::Result
+    #
+    # Constructs an empty PG::Result with status _status_.
+    # _status_ may be one of:
+    #  +PGRES_EMPTY_QUERY+
+    #  +PGRES_COMMAND_OK+
+    #  +PGRES_TUPLES_OK+
+    #  +PGRES_COPY_OUT+
+    #  +PGRES_COPY_IN+
+    #  +PGRES_BAD_RESPONSE+
+    #  +PGRES_NONFATAL_ERROR+
+    #  +PGRES_FATAL_ERROR+
+    #  +PGRES_COPY_BOTH+
+    def make_empty_pgresult(status)
+      pg_result = Libpq.PQmakeEmptyPGresult(@pg_conn, status.to_i)
+      Result.checked(pg_result, self)
     end
 
     def escape_string(str)
