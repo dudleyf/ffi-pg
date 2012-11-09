@@ -1,3 +1,5 @@
+# TODO: README
+
 require 'libc'
 
 module PG
@@ -301,13 +303,72 @@ module PG
       1 == Libpq.PQconnectionUsedPassword(@pg_conn)
     end
 
-    # def getssl
-    # end
-
     def exec(command, params=nil, result_format=0, &block)
-      pg_result = Libpq.PQexec(@pg_conn, command)
+      PG::Error.check_type(command, String)
+
+      if params.nil?
+        pg_result = Libpq.PQexec(@pg_conn, command)
+        result = Result.checked(pg_result, self)
+        if block_given?
+          begin
+            return yield result
+          ensure
+            result.clear
+          end
+        end
+        return result
+      end
+
+      PG::Error.check_type(params, Array)
+      nparams = params.length
+      param_types   = FFI::MemoryPointer(:oid, nparams)
+      param_values  = FFI::MemoryPointer.new(:pointer, nparams)
+      param_lengths = FFI::MemoryPointer.new(:int, nparams)
+      param_formats = FFI::MemoryPointer.new(:int, nparams)
+
+      params.each_with_index do |param, i|
+        if param.kind_of?(Hash)
+          param_type   = param[:type]
+          param_value  = param[:value].nil? ? nil : param[:value].to_s
+          param_format = param[:format]
+        else
+          param_type    = nil
+          param_value   = param.nil? ? nil : param.to_s
+          param_format  = nil
+        end
+
+        n = param_type.nil? ? 0 : param_type.to_i
+        param_types.put_int(i, n)
+
+        if param_value.nil?
+          param_values.put_pointer(i, nil)
+          param_lengths.put_int(i, 0)
+        else
+          PG::Error.check_type(param_value, String)
+
+          ptr = FFI::MemoryPointer.from_string(param_value)
+          param_values.put_pointer(i, ptr)
+          param_lengths.put_int(i, param_value.length)
+        end
+
+        if param_format.nil?
+          param_formats.put_int(i, 0)
+        else
+          param_formats.put_int(i, param_format.to_i)
+        end
+      end
+
+      pg_result = Libpq.PQexecParams(@pg_conn, command, nparams, param_types, param_values, param_lengths, param_formats, result_format)
       result = Result.checked(pg_result, self)
-      return yield result if block_given?
+
+      if block_given?
+        begin
+          return yield result
+        ensure
+          result.clear
+        end
+      end
+
       result
     end
     alias_method :query, :exec

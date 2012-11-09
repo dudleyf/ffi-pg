@@ -12,7 +12,7 @@ module PG
     # Raise a new PG::Error with either the current message from
     # the given connection, or a user-supplied message string.
     def self.for_connection(conn, msg=Libpq.PQerrorMessage(conn))
-      raise PG::Error, msg, conn
+      raise PG::Error.new(msg, conn)
     end
 
     def self.check_type(var, type)
