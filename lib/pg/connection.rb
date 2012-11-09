@@ -450,6 +450,21 @@ module PG
       Result.checked(pg_result, self)
     end
 
+    # call-seq:
+    #    conn.escape_string( str ) -> String
+    #
+    # Connection instance method for versions of 8.1 and higher of libpq
+    # uses PQescapeStringConn, which is safer. Avoid calling as a class method,
+    # the class method uses the deprecated PQescapeString() API function.
+    #
+    # Returns a SQL-safe version of the String _str_.
+    # This is the preferred way to make strings safe for inclusion in
+    # SQL queries.
+    #
+    # Consider using exec_params, which avoids the need for passing values
+    # inside of SQL commands.
+    #
+    # Encoding of escaped string will be equal to client encoding of connection.
     def escape_string(str)
       len = str.length
       buf = FFI::MemoryPointer.new(:char, 2*len+1)
@@ -462,6 +477,28 @@ module PG
     end
     alias_method :escape, :escape_string
 
+    # call-seq:
+    #   conn.escape_bytea( string ) -> String
+    #
+    # Connection instance method for versions of 8.1 and higher of libpq
+    # uses PQescapeByteaConn, which is safer. Avoid calling as a class method,
+    # the class method uses the deprecated PQescapeBytea() API function.
+    #
+    # Use the instance method version of this function, it is safer than the
+    # class method.
+    #
+    # Escapes binary data for use within an SQL command with the type +bytea+.
+    #
+    # Certain byte values must be escaped (but all byte values may be escaped)
+    # when used as part of a +bytea+ literal in an SQL statement. In general, to
+    # escape a byte, it is converted into the three digit octal number equal to
+    # the octet value, and preceded by two backslashes. The single quote (') and
+    # backslash (\) characters have special alternative escape sequences.
+    # #escape_bytea performs this operation, escaping only the minimally required
+    # bytes.
+    #
+    # Consider using exec_params, which avoids the need for passing values inside of
+    # SQL commands.
     def escape_bytea(str)
       from_len = str.length
       to_len = FFI::MemoryPointer.new(:int)
@@ -473,11 +510,35 @@ module PG
       ret
     end
 
+    # call-seq:
+    #   PG::Connection.unescape_bytea( string )
+    #
+    # Converts an escaped string representation of binary data into binary data --- the
+    # reverse of #escape_bytea. This is needed when retrieving +bytea+ data in text format,
+    # but not when retrieving it in binary format.
     def unescape_bytea(str)
       self.class.unescape_bytea(str)
     end
 
-    #/******     PGconn INSTANCE METHODS: Asynchronous Command Processing     ******/
+    # call-seq:
+    #    PG::Connection.quote_ident( str ) -> String
+    #    conn.quote_ident( str ) -> String
+    #
+    # Returns a string that is safe for inclusion in a SQL query as an
+    # identifier. Note: this is not a quote function for values, but for
+    # identifiers.
+    #
+    # For example, in a typical SQL query: <tt>SELECT FOO FROM MYTABLE</tt>
+    # The identifier <tt>FOO</tt> is folded to lower case, so it actually
+    # means <tt>foo</tt>. If you really want to access the case-sensitive
+    # field name <tt>FOO</tt>, use this function like
+    # <tt>PG::Connection.quote_ident('FOO')</tt>, which will return <tt>"FOO"</tt>
+    # (with double-quotes). PostgreSQL will see the double-quotes, and
+    # it will not fold to lower case.
+    def quote_ident(str)
+      self.class.quote_ident(str)
+    end
+
     def send_query
     end
 
