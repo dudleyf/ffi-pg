@@ -320,45 +320,8 @@ module PG
       end
 
       PG::Error.check_type(params, Array)
-      nparams = params.length
-      param_types   = FFI::MemoryPointer(:oid, nparams)
-      param_values  = FFI::MemoryPointer.new(:pointer, nparams)
-      param_lengths = FFI::MemoryPointer.new(:int, nparams)
-      param_formats = FFI::MemoryPointer.new(:int, nparams)
-
-      params.each_with_index do |param, i|
-        if param.kind_of?(Hash)
-          param_type   = param[:type]
-          param_value  = param[:value].nil? ? nil : param[:value].to_s
-          param_format = param[:format]
-        else
-          param_type    = nil
-          param_value   = param.nil? ? nil : param.to_s
-          param_format  = nil
-        end
-
-        n = param_type.nil? ? 0 : param_type.to_i
-        param_types.put_int(i, n)
-
-        if param_value.nil?
-          param_values.put_pointer(i, nil)
-          param_lengths.put_int(i, 0)
-        else
-          PG::Error.check_type(param_value, String)
-
-          ptr = FFI::MemoryPointer.from_string(param_value)
-          param_values.put_pointer(i, ptr)
-          param_lengths.put_int(i, param_value.length)
-        end
-
-        if param_format.nil?
-          param_formats.put_int(i, 0)
-        else
-          param_formats.put_int(i, param_format.to_i)
-        end
-      end
-
-      pg_result = Libpq.PQexecParams(@pg_conn, command, nparams, param_types, param_values, param_lengths, param_formats, result_format)
+      p = BindParameters.new(params)
+      pg_result = Libpq.PQexecParams(@pg_conn, command, p.length, p.types, p.values, p.lengths, p.formats, result_format)
       result = Result.checked(pg_result, self)
 
       if block_given?
@@ -373,7 +336,6 @@ module PG
     end
     alias_method :query, :exec
 
-    #
     # call-seq:
     #    conn.prepare(stmt_name, sql [, param_types ] ) -> PG::Result
     #
@@ -440,41 +402,18 @@ module PG
     def exec_prepared(name, params=[], result_format=0)
       PG::Error.check_type(name, String)
       PG::Error.check_type(params, Array)
+      p = BindParameters.new(params)
+      pg_result = Libpq.PQexecPrepared(@pg_conn, name, p.length, p.values, p.lengths, p.formats, result_format)
+      result = Result.checked(pg_result, self)
 
-      nparams = params.length
-      param_values  = FFI::MemoryPointer.new(:pointer, nparams)
-      param_lengths = FFI::MemoryPointer.new(:int, nparams)
-      param_formats = FFI::MemoryPointer.new(:int, nparams)
-
-      params.each_with_index do |param, i|
-        if param.kind_of?(Hash)
-          param_value  = param[:value].nil? ? nil : param[:value].to_s
-          param_format = param[:format]
-        else
-          param_value = param.nil? ? nil : param.to_s
-          param_format = 0
-        end
-
-        if param_value.nil?
-          param_values.put_pointer(i, nil)
-          param_lengths.put_int(i, 0)
-        else
-          PG::Error.check_type(param_value, String)
-
-          param_values.put_pointer(i, FFI::MemoryPointer.from_string(param_value))
-          param_lengths.put_int(i, param_value.length)
-        end
-
-        if param_format.nil?
-          param_formats.put_int(i, 0)
-        else
-          param_formats.put_int(i, param_format.to_i)
+      if block_given?
+        begin
+          return yield result
+        ensure
+          result.clear
         end
       end
 
-      pg_result = Libpq.PQexecPrepared(@pg_conn, name, nparams, param_values, param_lengths, param_formats, result_format)
-      result = Result.checked(pg_result, self)
-      return yield result if block_given?
       result
     end
 

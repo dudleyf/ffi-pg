@@ -32,6 +32,7 @@ module PG
   end
 
   require 'pg/error'
+  require 'pg/bind_parameters'
   require 'pg/connection'
   require 'pg/result'
 end
