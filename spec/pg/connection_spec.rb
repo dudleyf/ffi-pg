@@ -243,16 +243,17 @@ From backend> T
   #   end
   # end
 
-  # it "allows a query to be cancelled" do
-  #   error = false
-  #   @conn.send_query("SELECT pg_sleep(1000)")
-  #   @conn.cancel
-  #   tmpres = @conn.get_result
-  #   if(tmpres.result_status != PG::PGRES_TUPLES_OK)
-  #     error = true
-  #   end
-  #   error.should == true
-  # end
+  it "allows a query to be cancelled" do
+    error = false
+
+    @conn.send_query("SELECT pg_sleep(1000)")
+    @conn.cancel
+    tmpres = @conn.get_result
+    if(tmpres.result_status != PG::PGRES_TUPLES_OK)
+      error = true
+    end
+    error.should == true
+  end
 
   it "automatically rolls back a transaction started with described_class#transaction if an exception " +
      "is raised" do
@@ -500,17 +501,17 @@ From backend> T
     }.to raise_error( TypeError )
   end
 
-  # it "can connect asynchronously" do
-  #   serv = TCPServer.new( '127.0.0.1', 54320 )
-  #   conn = described_class.connect_start( '127.0.0.1', 54320, "", "", "me", "xxxx", "somedb" )
-  #   conn.connect_poll.should == PG::PGRES_POLLING_WRITING
-  #   select( nil, [IO.for_fd(conn.socket)], nil, 0.2 )
-  #   serv.close
-  #   if conn.connect_poll == PG::PGRES_POLLING_READING
-  #     select( [IO.for_fd(conn.socket)], nil, nil, 0.2 )
-  #   end
-  #   conn.connect_poll.should == PG::PGRES_POLLING_FAILED
-  # end
+  it "can connect asynchronously" do
+    serv = TCPServer.new( '127.0.0.1', 54320 )
+    conn = described_class.connect_start( '127.0.0.1', 54320, "", "", "me", "xxxx", "somedb" )
+    conn.connect_poll.should == PG::PGRES_POLLING_WRITING
+    select( nil, [IO.for_fd(conn.socket)], nil, 0.2 )
+    serv.close
+    if conn.connect_poll == PG::PGRES_POLLING_READING
+      select( [IO.for_fd(conn.socket)], nil, nil, 0.2 )
+    end
+    conn.connect_poll.should == PG::PGRES_POLLING_FAILED
+  end
   #
   # it "discards previous results (if any) before waiting on an #async_exec"
   #

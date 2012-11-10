@@ -539,7 +539,55 @@ module PG
       self.class.quote_ident(str)
     end
 
-    def send_query
+    # call-seq:
+    #    conn.send_query(sql [, params, result_format ] ) -> nil
+    #
+    # Sends SQL query request specified by _sql_ to PostgreSQL for
+    # asynchronous processing, and immediately returns.
+    # On failure, it raises a PG::Error.
+    #
+    # +params+ is an optional array of the bind parameters for the SQL query.
+    # Each element of the +params+ array may be either:
+    #   a hash of the form:
+    #     {:value  => String (value of bind parameter)
+    #      :type   => Fixnum (oid of type of bind parameter)
+    #      :format => Fixnum (0 for text, 1 for binary)
+    #     }
+    #   or, it may be a String. If it is a string, that is equivalent to the hash:
+    #     { :value => <string value>, :type => 0, :format => 0 }
+    #
+    # PostgreSQL bind parameters are represented as $1, $1, $2, etc.,
+    # inside the SQL query. The 0th element of the +params+ array is bound
+    # to $1, the 1st element is bound to $2, etc. +nil+ is treated as +NULL+.
+    #
+    # If the types are not specified, they will be inferred by PostgreSQL.
+    # Instead of specifying type oids, it's recommended to simply add
+    # explicit casts in the query to ensure that the right type is used.
+    #
+    # For example: "SELECT $1::int"
+    #
+    # The optional +result_format+ should be 0 for text results, 1
+    # for binary.
+    def send_query(command, params=nil, result_format=0, &block)
+      PG::Error.check_type(command, String)
+
+      # If called without parameters, use PQsendQuery
+      if params.nil?
+        res = Libpq.PQsendQuery(@pg_conn, command)
+        if res == 0
+          raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+        end
+        return nil
+      end
+
+      # If called with parameters, use PQsendQueryParams
+      PG::Error.check_type(params, Array)
+      p = BindParameters.new(params)
+      res = Libpq.PQsendQueryParams(@pg_conn, command, p.length, p.types, p.values, p.lengths, p.formats, result_format)
+      if res == 0
+        raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+      end
+      return nil
     end
 
     def send_prepare
@@ -554,7 +602,25 @@ module PG
     def send_describe_portal
     end
 
-    def get_result
+    # call-seq:
+    #    conn.get_result() -> PG::Result
+    #    conn.get_result() {|pg_result| block }
+    #
+    # Blocks waiting for the next result from a call to
+    # #send_query (or another asynchronous command), and returns
+    # it. Returns +nil+ if no more results are available.
+    #
+    # Note: call this function repeatedly until it returns +nil+, or else
+    # you will not be able to issue further commands.
+    #
+    # If the optional code block is given, it will be passed <i>result</i> as an argument,
+    # and the PG::Result object will  automatically be cleared when the block terminates.
+    # In this instance, <code>conn.exec</code> returns the value of the block.
+    def get_result(&block)
+      pg_result = Libpq.PQgetResult(@pg_conn)
+      return nil if pg_result.nil?
+      result = Result.new(pg_result, self)
+      yield_result(result, &block)
     end
 
     def consume_input
@@ -573,8 +639,22 @@ module PG
     def flush
     end
 
-    #/******     PGconn INSTANCE METHODS: Cancelling Queries in Progress     ******/
+    # call-seq:
+    #    conn.cancel() -> String
+    #
+    # Requests cancellation of the command currently being
+    # processed. (Only implemented in PostgreSQL >= 8.0)
+    #
+    # Returns +nil+ on success, or a string containing the
+    # error message if a failure occurs.
     def cancel
+      errbuf = FFI::Buffer.new(:char, 256, true)
+      pg_cancel = Libpq.PQgetCancel(@pg_conn)
+      raise PG::Error.new("Invalid connection!") if pg_cancel.nil?
+
+      r = Libpq.PQcancel(pg_cancel, errbuf, 256)
+      Libpq.PQfreeCancel(pg_cancel)
+      return (r == 1) ? nil : errbuf.get_string(0, 256)
     end
 
     #/******     PGconn INSTANCE METHODS: NOTIFY     ******/
@@ -716,6 +796,19 @@ module PG
 
     def raise_pg_error(msg=nil)
       PG::Error.for_connection(@pg_conn, msg)
+    end
+
+    def yield_result(result, &block)
+      if block
+        begin
+          block_val = block.call(result)
+        ensure
+          result.clear
+        end
+        block_val
+      else
+        result
+      end
     end
   end
 end

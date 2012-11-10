@@ -271,7 +271,7 @@ module Libpq
   attach_function :PQfreeCancel, [:pg_cancel], :void
 
   # issue a cancel request
-  attach_function :PQcancel, [:pg_cancel, :string, :int], :int
+  attach_function :PQcancel, [:pg_cancel, :pointer, :int], :int
 
   # backwards compatible version of PQcancel; not thread-safe
   attach_function :PQrequestCancel, [:pg_conn], :int
