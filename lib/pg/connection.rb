@@ -433,22 +433,13 @@ module PG
     # If the optional code block is given, it will be passed <i>result</i> as an argument,
     # and the PG::Result object will  automatically be cleared when the block terminates.
     # In this instance, <code>conn.exec_prepared</code> returns the value of the block.
-    def exec_prepared(name, params=[], result_format=0)
+    def exec_prepared(name, params=[], result_format=0, &block)
       PG::Error.check_type(name, String)
       PG::Error.check_type(params, Array)
       p = BindParameters.new(params)
       pg_result = Libpq.PQexecPrepared(@pg_conn, name, p.length, p.values, p.lengths, p.formats, result_format)
       result = Result.checked(pg_result, self)
-
-      if block_given?
-        begin
-          return yield result
-        ensure
-          result.clear
-        end
-      end
-
-      result
+      yield_result(result, &block)
     end
 
     # call-seq:
