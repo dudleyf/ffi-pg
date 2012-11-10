@@ -303,6 +303,40 @@ module PG
       1 == Libpq.PQconnectionUsedPassword(@pg_conn)
     end
 
+    # call-seq:
+    #    conn.exec(sql [, params, result_format ] ) -> PG::Result
+    #    conn.exec(sql [, params, result_format ] ) {|pg_result| block }
+    #
+    # Sends SQL query request specified by _sql_ to PostgreSQL.
+    # Returns a PG::Result instance on success.
+    # On failure, it raises a PG::Error.
+    #
+    # +params+ is an optional array of the bind parameters for the SQL query.
+    # Each element of the +params+ array may be either:
+    #   a hash of the form:
+    #     {:value  => String (value of bind parameter)
+    #      :type   => Fixnum (oid of type of bind parameter)
+    #      :format => Fixnum (0 for text, 1 for binary)
+    #     }
+    #   or, it may be a String. If it is a string, that is equivalent to the hash:
+    #     { :value => <string value>, :type => 0, :format => 0 }
+    #
+    # PostgreSQL bind parameters are represented as $1, $1, $2, etc.,
+    # inside the SQL query. The 0th element of the +params+ array is bound
+    # to $1, the 1st element is bound to $2, etc. +nil+ is treated as +NULL+.
+    #
+    # If the types are not specified, they will be inferred by PostgreSQL.
+    # Instead of specifying type oids, it's recommended to simply add
+    # explicit casts in the query to ensure that the right type is used.
+    #
+    # For example: "SELECT $1::int"
+    #
+    # The optional +result_format+ should be 0 for text results, 1
+    # for binary.
+    #
+    # If the optional code block is given, it will be passed <i>result</i> as an argument,
+    # and the PG::Result object will  automatically be cleared when the block terminates.
+    # In this instance, <code>conn.exec</code> returns the value of the block.
     def exec(command, params=nil, result_format=0, &block)
       PG::Error.check_type(command, String)
 
