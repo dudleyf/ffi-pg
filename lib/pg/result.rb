@@ -16,7 +16,7 @@ module PG
     end
 
     def check
-      if @pg_result.nil?
+      if @pg_result.null?
         #TODO: encoding
         error = @connection.error_message
       else

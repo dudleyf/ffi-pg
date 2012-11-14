@@ -150,7 +150,7 @@ module PG
 
       @pg_conn = Libpq.PQconnectdb(conninfo)
 
-      if @pg_conn.nil?
+      if @pg_conn.null?
         raise_pg_error "PQconnectdb() unable to allocate structure"
       end
 
@@ -176,7 +176,7 @@ module PG
 
       @pg_conn = Libpq.PQconnectStart(conninfo)
 
-      if @pg_conn.nil?
+      if @pg_conn.null?
         raise_pg_error "PQconnectStart() unable to allocate structure"
       end
 
@@ -733,7 +733,7 @@ module PG
     # In this instance, <code>conn.exec</code> returns the value of the block.
     def get_result(&block)
       pg_result = Libpq.PQgetResult(@pg_conn)
-      return nil if pg_result.nil?
+      return nil if pg_result.null?
       result = Result.new(pg_result, self)
       yield_result(result, &block)
     end
@@ -794,7 +794,18 @@ module PG
     end
     alias_method :nonblocking?, :isnonblocking
 
+    # call-seq:
+    #    conn.flush() -> Boolean
+    #
+    # Attempts to flush any queued output data to the server.
+    # Returns +true+ if data is successfully flushed, +false+
+    # if not (can only return +false+ if connection is
+    # nonblocking.
+    # Raises PG::Error if some other failure occurred.
     def flush
+      r = Libpq.PQflush(@pg_conn)
+      raise_pg_error if r == -1
+      r == 1
     end
 
     # call-seq:
@@ -808,7 +819,7 @@ module PG
     def cancel
       errbuf = FFI::Buffer.new(:char, 256, true)
       pg_cancel = Libpq.PQgetCancel(@pg_conn)
-      raise PG::Error.new("Invalid connection!") if pg_cancel.nil?
+      raise PG::Error.new("Invalid connection!") if pg_cancel.null?
 
       r = Libpq.PQcancel(pg_cancel, errbuf, 256)
       Libpq.PQfreeCancel(pg_cancel)
