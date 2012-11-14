@@ -696,7 +696,17 @@ module PG
       return nil
     end
 
-    def send_describe_prepared
+    # call-seq:
+    #    conn.send_describe_prepared( statement_name ) -> nil
+    #
+    # Asynchronously send _command_ to the server. Does not block.
+    # Use in combination with +conn.get_result+.
+    def send_describe_prepared(stmt_name)
+      if 0 == Libpq.PQsendDescribePrepared(@pg_conn, stmt_name)
+        raise_pg_error
+      end
+
+      nil
     end
 
     def send_describe_portal
