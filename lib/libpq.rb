@@ -35,18 +35,19 @@ module Libpq
     # Identifiers of error message fields.
     # These were hiding in postgres_ext.h instead of
     # libpq-fe.h.
-    PG_DIAG_SEVERITY = 'S'
-    PG_DIAG_SQLSTATE = 'C'
-    PG_DIAG_MESSAGE_PRIMARY = 'M'
-    PG_DIAG_MESSAGE_DETAIL = 'D'
-    PG_DIAG_MESSAGE_HINT = 'H'
-    PG_DIAG_STATEMENT_POSITION = 'P'
-    PG_DIAG_INTERNAL_POSITION = 'p'
-    PG_DIAG_INTERNAL_QUERY = 'q'
-    PG_DIAG_CONTEXT =  'W'
-    PG_DIAG_SOURCE_FILE =  'F'
-    PG_DIAG_SOURCE_LINE =  'L'
-    PG_DIAG_SOURCE_FUNCTION = 'R'
+    # And they're actually used as ints, not strings.
+    PG_DIAG_SEVERITY = 'S'.ord
+    PG_DIAG_SQLSTATE = 'C'.ord
+    PG_DIAG_MESSAGE_PRIMARY = 'M'.ord
+    PG_DIAG_MESSAGE_DETAIL = 'D'.ord
+    PG_DIAG_MESSAGE_HINT = 'H'.ord
+    PG_DIAG_STATEMENT_POSITION = 'P'.ord
+    PG_DIAG_INTERNAL_POSITION = 'p'.ord
+    PG_DIAG_INTERNAL_QUERY = 'q'.ord
+    PG_DIAG_CONTEXT =  'W'.ord
+    PG_DIAG_SOURCE_FILE =  'F'.ord
+    PG_DIAG_SOURCE_LINE =  'L'.ord
+    PG_DIAG_SOURCE_FUNCTION = 'R'.ord
 
     # enum ConnStatusType
     CONNECTION_OK = 0

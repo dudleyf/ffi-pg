@@ -44,53 +44,55 @@ describe PG::Result do
 		res[0]['b'].should== '2'
 	end
 
-  # it "should insert nil AS NULL and return NULL as nil" do
-  #   res = @conn.exec("SELECT $1::int AS n", [nil])
-  #   res[0]['n'].should be_nil()
-  # end
+  it "should insert nil AS NULL and return NULL as nil" do
+    res = @conn.exec("SELECT $1::int AS n", [nil])
+    res[0]['n'].should be_nil()
+  end
 
-  # it "encapsulates errors in a PGError object" do
-  #   exception = nil
-  #   begin
-  #     @conn.exec( "SELECT * FROM nonexistant_table" )
-  #   rescue PGError => err
-  #     exception = err
-  #   end
-  # 
-  #   result = exception.result
-  # 
-  #   result.should be_a( described_class() )
-  #   result.error_field( PG::PG_DIAG_SEVERITY ).should == 'ERROR'
-  #   result.error_field( PG::PG_DIAG_SQLSTATE ).should == '42P01'
-  #   result.error_field( PG::PG_DIAG_MESSAGE_PRIMARY ).
-  #     should == 'relation "nonexistant_table" does not exist'
-  #   result.error_field( PG::PG_DIAG_MESSAGE_DETAIL ).should be_nil()
-  #   result.error_field( PG::PG_DIAG_MESSAGE_HINT ).should be_nil()
-  #   result.error_field( PG::PG_DIAG_STATEMENT_POSITION ).should == '15'
-  #   result.error_field( PG::PG_DIAG_INTERNAL_POSITION ).should be_nil()
-  #   result.error_field( PG::PG_DIAG_INTERNAL_QUERY ).should be_nil()
-  #   result.error_field( PG::PG_DIAG_CONTEXT ).should be_nil()
-  #   result.error_field( PG::PG_DIAG_SOURCE_FILE ).should =~ /parse_relation\.c$/
-  #   result.error_field( PG::PG_DIAG_SOURCE_LINE ).should == '857'
-  #   result.error_field( PG::PG_DIAG_SOURCE_FUNCTION ).should == 'parserOpenTable'
-  # 
-  # end
-  # 
-  # it "should detect division by zero as SQLSTATE 22012" do
-  #   sqlstate = nil
-  #   begin
-  #     res = @conn.exec("SELECT 1/0")
-  #   rescue PGError => e
-  #     sqlstate = e.result.result_error_field( PG::PG_DIAG_SQLSTATE ).to_i
-  #   end
-  #   sqlstate.should == 22012
-  # end
-  # 
+  it "encapsulates errors in a PGError object" do
+     exception = nil
+     begin
+       @conn.exec( "SELECT * FROM nonexistant_table" )
+     rescue PGError => err
+       exception = err
+     end
+   
+     result = exception.result
+   
+     result.should be_a( described_class() )
+     result.error_field( PG::PG_DIAG_SEVERITY ).should == 'ERROR'
+     result.error_field( PG::PG_DIAG_SQLSTATE ).should == '42P01'
+     result.error_field( PG::PG_DIAG_MESSAGE_PRIMARY ).
+       should == 'relation "nonexistant_table" does not exist'
+     result.error_field( PG::PG_DIAG_MESSAGE_DETAIL ).should be_nil()
+     result.error_field( PG::PG_DIAG_MESSAGE_HINT ).should be_nil()
+     result.error_field( PG::PG_DIAG_STATEMENT_POSITION ).should == '15'
+     result.error_field( PG::PG_DIAG_INTERNAL_POSITION ).should be_nil()
+     result.error_field( PG::PG_DIAG_INTERNAL_QUERY ).should be_nil()
+     result.error_field( PG::PG_DIAG_CONTEXT ).should be_nil()
+     result.error_field( PG::PG_DIAG_SOURCE_FILE ).should =~ /parse_relation\.c$/
+     result.error_field( PG::PG_DIAG_SOURCE_LINE ).should == '864'
+     result.error_field( PG::PG_DIAG_SOURCE_FUNCTION ).should == 'parserOpenTable'
+   
+   end
+  
+  it "should detect division by zero as SQLSTATE 22012" do
+    sqlstate = nil
+    begin
+      res = @conn.exec("SELECT 1/0")
+    rescue PGError => e
+      sqlstate = e.result.result_error_field( PG::PG_DIAG_SQLSTATE ).to_i
+    end
+    sqlstate.should == 22012
+  end
+
   # it "should return the same bytes in binary format that are sent in binary format" do
   #   binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
   #   bytes = File.open(binary_file, 'rb').read
+  #   require 'pry'; binding.pry
   #   res = @conn.exec('VALUES ($1::bytea)', 
   #     [ { :value => bytes, :format => 1 } ], 1)
+  #     
   #   res[0]['column1'].should== bytes
   #   res.getvalue(0,0).should == bytes
   #   res.values[0][0].should == bytes
@@ -126,34 +128,36 @@ describe PG::Result do
   #   out_bytes = PG::Connection.unescape_bytea(res[0]['column1'])
   #   out_bytes.should == in_bytes
   # end
-  # 
-  # it "should return the parameter type of the specified prepared statement parameter" do
-  #   query = 'SELECT * FROM pg_stat_activity WHERE user = $1::name AND current_query = $2::text'
-  #   @conn.prepare( 'queryfinder', query )
-  #   res = @conn.describe_prepared( 'queryfinder' )
-  # 
-  #   @conn.exec( 'SELECT format_type($1, -1)', [res.paramtype(0)] ).getvalue( 0, 0 ).
-  #     should == 'name'
-  #   @conn.exec( 'SELECT format_type($1, -1)', [res.paramtype(1)] ).getvalue( 0, 0 ).
-  #     should == 'text'
-  # end
-  # 
+  
+  it "should return the parameter type of the specified prepared statement parameter" do
+    query = 'SELECT * FROM pg_stat_activity WHERE user = $1::name AND query = $2::text'
+    s = @conn.prepare( 'queryfinder', query )
+    res = @conn.describe_prepared( 'queryfinder' )
+
+    @conn.exec( 'SELECT format_type($1, -1)', [res.paramtype(0)] ).getvalue( 0, 0 ).
+      should == 'name'
+    @conn.exec( 'SELECT format_type($1, -1)', [res.paramtype(1)] ).getvalue( 0, 0 ).
+      should == 'text'
+  end
+
   it "should raise an exception when a negative index is given to #fformat" do
-    res = @conn.exec('SELECT * FROM pg_stat_activity')
+    res = @conn.exec('SELECT 1')
     expect {
       res.fformat( -1 )
     }.to raise_error( ArgumentError, /column number/i )
   end
   
   it "should raise an exception when a negative index is given to #fmod" do
-    res = @conn.exec('SELECT * FROM pg_stat_activity')
+    res = @conn.exec('SELECT 1')
     expect {
       res.fmod( -1 )
     }.to raise_error( ArgumentError, /column number/i )
   end
   
   it "should raise an exception when a negative index is given to #[]" do
-    res = @conn.exec('SELECT * FROM pg_stat_activity')
+    @conn.exec( 'CREATE TABLE foos ( foo varchar(33) )' )
+
+    res = @conn.exec('SELECT 1')
     expect {
       res[ -1 ]
     }.to raise_error( IndexError, /-1 is out of range/i )
@@ -252,12 +256,12 @@ describe PG::Result do
     res.ftablecol(1).should == 0 # and it shouldn't raise an exception, either
   end
   
-  # it "can be manually checked for failed result status (async API)" do
-  #   @conn.send_query( "SELECT * FROM nonexistant_table" )
-  #   res = @conn.get_result
-  #   expect {
-  #     res.check
-  #   }.to raise_error( PG::Error, /relation "nonexistant_table" does not exist/ )
-  # end
+  it "can be manually checked for failed result status (async API)" do
+    @conn.send_query( "SELECT * FROM nonexistant_table" )
+      res = @conn.get_result
+    expect {
+      res.check
+    }.to raise_error( PG::Error, /relation "nonexistant_table" does not exist/ )
+  end
 
 end

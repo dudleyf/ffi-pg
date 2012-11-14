@@ -15,8 +15,36 @@ module PG
       #TODO: encoding
     end
 
-    def check(*args)
+    def check
+      if @pg_result.nil?
+        #TODO: encoding
+        error = @connection.error_message
+      else
+        if success?
+          return nil
+        else
+          error = result_error_message
+        end
+      end
 
+      raise PG::Error.new error, @connection, self
+    end
+
+    def success?
+      case result_status
+        when PGRES_TUPLES_OK,
+             PGRES_COPY_OUT,
+             PGRES_COPY_IN,
+             PGRES_COPY_BOTH,
+             PGRES_SINGLE_TUPLE,
+             PGRES_EMPTY_QUERY,
+             PGRES_COMMAND_OK
+          return true
+        when PGRES_BAD_RESPONSE,
+             PGRES_FATAL_ERROR,
+             PGRES_NONFATAL_ERROR
+          return false
+      end
     end
 
     #/******     PGresult INSTANCE METHODS: libpq     ******/
@@ -30,17 +58,19 @@ module PG
       ret
     end
 
-    def result_error_message
+    def error_message
       ret = Libpq.PQresultErrorMessage(@pg_result)
       # TODO: encoding
       ret
     end
+    alias_method :result_error_message, :error_message
 
-    def result_error_field(field_code)
+    def error_field(field_code)
       ret = Libpq.PQresultErrorField(@pg_result, field_code)
       # TODO: encoding
       ret
     end
+    alias_method :result_error_field, :error_field
 
     def clear
       Libpq.PQclear(@pg_result)
