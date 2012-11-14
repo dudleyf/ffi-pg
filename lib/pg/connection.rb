@@ -761,10 +761,36 @@ module PG
       1 == Libpq.PQisBusy(@pg_conn)
     end
 
-    def setnonblocking
+    # call-seq:
+    #    conn.setnonblocking(Boolean) -> nil
+    #
+    # Sets the nonblocking status of the connection.
+    # In the blocking state, calls to #send_query
+    # will block until the message is sent to the server,
+    # but will not wait for the query results.
+    # In the nonblocking state, calls to #send_query
+    # will return an error if the socket is not ready for
+    # writing.
+    # Note: This function does not affect #exec, because
+    # that function doesn't return until the server has
+    # processed the query and returned the results.
+    # Returns +nil+.
+    def setnonblocking(state)
+      arg = !!state ? 1 : 0 # if state is true, 1, otherwise 0
+      if -1 == Libpq.PQsetnonblocking(@pg_conn, arg)
+        raise_pg_error
+      end
+
+      nil
     end
 
+    # call-seq:
+    #    conn.isnonblocking() -> Boolean
+    #
+    # Returns +true+ if the connection is in a nonblocking
+    # state. Otherwise returns +false+.
     def isnonblocking
+      1 == Libpq.PQisnonblocking(@pg_conn)
     end
     alias_method :nonblocking?, :isnonblocking
 
