@@ -43,7 +43,7 @@ module PG
     end
 
     def type=(t)
-      @type = t.nil? ? t : t.to_i
+      @type = t.nil? ? 0 : t.to_i
     end
 
     def value=(v)
@@ -58,7 +58,7 @@ module PG
     end
 
     def format=(f)
-      @format = f.nil? ? f : f.to_s
+      @format = f.nil? ? 0 : f.to_i
     end
 
     def length
