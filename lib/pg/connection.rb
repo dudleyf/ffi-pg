@@ -72,22 +72,16 @@ module PG
       from = FFI::MemoryPointer.from_string(str)
       from_len = str.length
       to_len = FFI::MemoryPointer.new(:int)
-
       to = Libpq.PQescapeBytea(from, from_len, to_len)
-
       ret = to.read_bytes(to_len.read_int - 1)
-      Libpq.PQfreemem(to)
       ret
     end
 
     def self.unescape_bytea(str)
-      from_len = str.length
       to_len = FFI::MemoryPointer.new(:int)
-
-      to = Libpq.PQunescapeBytea(@pg_conn, str, from_len, to_len)
-
-      ret = to.read_bytes(to_len.read_int - 1)
-      Libpq.PQfreemem(to)
+      to = Libpq.PQunescapeBytea(str, to_len)
+      ret = to.read_bytes(to_len.read_int)
+      ret
     end
 
     def self.encrypt_password(pass, user)

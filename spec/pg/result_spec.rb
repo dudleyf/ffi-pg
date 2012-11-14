@@ -86,47 +86,47 @@ describe PG::Result do
     sqlstate.should == 22012
   end
 
-  # it "should return the same bytes in binary format that are sent in binary format" do
-  #   binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
-  #   bytes = File.open(binary_file, 'rb').read
-  #   res = @conn.exec('VALUES ($1::bytea)', 
-  #     [ { :value => bytes, :format => 1 } ], 1)
-  #     
-  #   res[0]['column1'].should== bytes
-  #   res.getvalue(0,0).should == bytes
-  #   res.values[0][0].should == bytes
-  #   res.column_values(0)[0].should == bytes
-  # end
-  # 
-  # it "should return the same bytes in binary format that are sent as inline text" do
-  #   binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
-  #   bytes = File.open(binary_file, 'rb').read
-  #   @conn.exec("SET standard_conforming_strings=on")
-  #   res = @conn.exec("VALUES ('#{PG::Connection.escape_bytea(bytes)}'::bytea)", [], 1)
-  #   res[0]['column1'].should == bytes
-  #   res.getvalue(0,0).should == bytes
-  #   res.values[0][0].should == bytes
-  #   res.column_values(0)[0].should == bytes
-  # end
-  # 
-  # it "should return the same bytes in text format that are sent in binary format" do
-  #   binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
-  #   bytes = File.open(binary_file, 'rb').read
-  #   res = @conn.exec('VALUES ($1::bytea)', 
-  #     [ { :value => bytes, :format => 1 } ])
-  #   PG::Connection.unescape_bytea(res[0]['column1']).should== bytes
-  # end
-  # 
-  # it "should return the same bytes in text format that are sent as inline text" do
-  #   binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
-  #   in_bytes = File.open(binary_file, 'rb').read
-  # 
-  #   out_bytes = nil
-  #   @conn.exec("SET standard_conforming_strings=on")
-  #   res = @conn.exec("VALUES ('#{PG::Connection.escape_bytea(in_bytes)}'::bytea)", [], 0)
-  #   out_bytes = PG::Connection.unescape_bytea(res[0]['column1'])
-  #   out_bytes.should == in_bytes
-  # end
+  it "should return the same bytes in binary format that are sent in binary format" do
+    binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
+    bytes = File.open(binary_file, 'rb').read
+    res = @conn.exec('VALUES ($1::bytea)', 
+      [ { :value => bytes, :format => 1 } ], 1)
+      
+    res[0]['column1'].should== bytes
+    res.getvalue(0,0).should == bytes
+    res.values[0][0].should == bytes
+    res.column_values(0)[0].should == bytes
+  end
+  
+  it "should return the same bytes in binary format that are sent as inline text" do
+    binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
+    bytes = File.open(binary_file, 'rb').read
+    @conn.exec("SET standard_conforming_strings=on")
+    res = @conn.exec("VALUES ('#{PG::Connection.escape_bytea(bytes)}'::bytea)", [], 1)
+    res[0]['column1'].should == bytes
+    res.getvalue(0,0).should == bytes
+    res.values[0][0].should == bytes
+    res.column_values(0)[0].should == bytes
+  end
+  
+  it "should return the same bytes in text format that are sent in binary format" do
+    binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
+    bytes = File.open(binary_file, 'rb').read
+    res = @conn.exec('VALUES ($1::bytea)', 
+      [ { :value => bytes, :format => 1 } ])
+    PG::Connection.unescape_bytea(res[0]['column1']).should== bytes
+  end
+  
+  it "should return the same bytes in text format that are sent as inline text" do
+    binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
+    in_bytes = File.open(binary_file, 'rb').read
+  
+    out_bytes = nil
+    @conn.exec("SET standard_conforming_strings=on")
+    res = @conn.exec("VALUES ('#{PG::Connection.escape_bytea(in_bytes)}'::bytea)", [], 0)
+    out_bytes = PG::Connection.unescape_bytea(res[0]['column1'])
+    out_bytes.should == in_bytes
+  end
   
   it "should return the parameter type of the specified prepared statement parameter" do
     query = 'SELECT * FROM pg_stat_activity WHERE user = $1::name AND query = $2::text'
