@@ -660,7 +660,40 @@ module PG
       return nil
     end
 
-    def send_query_prepared
+    #
+    # call-seq:
+    #    conn.send_query_prepared( statement_name [, params, result_format ] )
+    #      -> nil
+    #
+    # Execute prepared named statement specified by _statement_name_
+    # asynchronously, and returns immediately.
+    # On failure, it raises a PG::Error.
+    #
+    # +params+ is an array of the optional bind parameters for the
+    # SQL query. Each element of the +params+ array may be either:
+    #   a hash of the form:
+    #     {:value  => String (value of bind parameter)
+    #      :format => Fixnum (0 for text, 1 for binary)
+    #     }
+    #   or, it may be a String. If it is a string, that is equivalent to the hash:
+    #     { :value => <string value>, :format => 0 }
+    #
+    # PostgreSQL bind parameters are represented as $1, $1, $2, etc.,
+    # inside the SQL query. The 0th element of the +params+ array is bound
+    # to $1, the 1st element is bound to $2, etc. +nil+ is treated as +NULL+.
+    #
+    # The optional +result_format+ should be 0 for text results, 1
+    # for binary.
+    #
+    def send_query_prepared(name, params=[], result_format=0, &block)
+      PG::Error.check_type(name, String)
+
+      p = BindParameters.new(params)
+      res = Libpq.PQsendQueryPrepared(@pg_conn, name, p.length, p.types, p.values, p.lengths, p.formats, result_format)
+      if res == 0
+        raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+      end
+      return nil
     end
 
     def send_describe_prepared
