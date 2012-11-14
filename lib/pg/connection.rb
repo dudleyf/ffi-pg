@@ -709,7 +709,17 @@ module PG
       nil
     end
 
+    # call-seq:
+    #    conn.send_describe_portal( portal_name ) -> nil
+    #
+    # Asynchronously send _command_ to the server. Does not block.
+    # Use in combination with +conn.get_result+.
     def send_describe_portal
+      if 0 == Libpq.PQsendDescribePortal(@pg_conn, portal_name)
+        raise_pg_error
+      end
+
+      nil
     end
 
     # call-seq:
