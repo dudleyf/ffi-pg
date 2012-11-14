@@ -621,7 +621,43 @@ module PG
       return nil
     end
 
+    # call-seq:
+    #    conn.send_prepare( stmt_name, sql [, param_types ] ) -> nil
+    #
+    # Prepares statement _sql_ with name _name_ to be executed later.
+    # Sends prepare command asynchronously, and returns immediately.
+    # On failure, it raises a PG::Error.
+    #
+    # +param_types+ is an optional parameter to specify the Oids of the
+    # types of the parameters.
+    #
+    # If the types are not specified, they will be inferred by PostgreSQL.
+    # Instead of specifying type oids, it's recommended to simply add
+    # explicit casts in the query to ensure that the right type is used.
+    #
+    # For example: "SELECT $1::int"
+    #
+    # PostgreSQL bind parameters are represented as $1, $1, $2, etc.,
+    # inside the SQL query.
     def send_prepare
+      PG::Error.check_type(name, String)
+      PG::Error.check_type(command, String)
+
+      nparams = 0
+      param_types = nil
+      unless in_paramtypes.nil?
+        PG::Error.check_type(in_paramtypes, Array)
+
+        nparams = in_paramtypes.length
+        param_types = FFI::MemoryPointer.new(:oid, nparams)
+        param_types.write_array_of_uint(0, in_paramtypes)
+      end
+
+      res = Libpq.PQsendPrepare(@pg_conn, name, command, nparams, param_types)
+      if res == 0
+        raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+      end
+      return nil
     end
 
     def send_query_prepared
