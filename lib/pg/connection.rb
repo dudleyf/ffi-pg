@@ -67,6 +67,7 @@ module PG
       alias_method :escape, :escape_string
     end
 
+    # @deprecated
     def self.escape_bytea(str)
       from = FFI::MemoryPointer.from_string(str)
       from_len = str.length
@@ -743,10 +744,27 @@ module PG
       yield_result(result, &block)
     end
 
+    # call-seq:
+    #    conn.consume_input()
+    #
+    # If input is available from the server, consume it.
+    # After calling +consume_input+, you can check +is_busy+
+    # or *notifies* to see if the state has changed.
     def consume_input
+      if 0 == Libpq.PQconsumeInput(@pg_conn, portal_name)
+        raise_pg_error
+      end
+
+      nil
     end
 
+    # call-seq:
+    #    conn.is_busy() -> Boolean
+    #
+    # Returns +true+ if a command is busy, that is, if
+    # PQgetResult would block. Otherwise returns +false+.
     def is_busy
+      1 == Libpq.PQisBusy(@pg_conn)
     end
 
     def setnonblocking
