@@ -179,10 +179,8 @@ module PG
         raise ArgumentError, "invalid field number #{field_num}"
       end
 
-      return nil if null?(tuple_num, field_num)
-      ret = Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
       # TODO: encoding
-      ret
+      value_at(tuple_num, field_num)
     end
 
     def getisnull(tuple_num, field_num)
@@ -256,9 +254,8 @@ module PG
         if null?(tuple_num, field_num)
           tuple[field_name] = nil
         else
-          val = Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
           # TODO: encoding
-          tuple[field_name] = val
+          tuple[field_name] = value_at(tuple_num, field_num)
         end
       end
 
@@ -313,7 +310,7 @@ module PG
 
       # TODO: encoding
       (0...ntuples).map do |r|
-        Libpq.PQgetvalue(@pg_result, r, column_index)
+        value_at(r, column_index)
       end
     end
 
@@ -327,7 +324,7 @@ module PG
 
       # TODO: encoding
       (0...ntuples).map do |r|
-        Libpq.PQgetvalue(@pg_result, r, field_num)
+        value_at(r, field_num)
       end
     end
 
