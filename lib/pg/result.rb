@@ -332,7 +332,10 @@ module PG
 
     def value_at(tuple_num, field_num)
       if !null?(tuple_num, field_num)
-        Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
+        value_ptr = Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
+        value_len = getlength(tuple_num, field_num)
+
+        value = value_ptr.read_bytes(value_len)
       end
     end
 

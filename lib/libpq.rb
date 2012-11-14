@@ -458,7 +458,7 @@ module Libpq
   attach_function :PQoidStatus,           [:pg_result], :string
   attach_function :PQoidValue,            [:pg_result], :oid
   attach_function :PQcmdTuples,           [:pg_result], :string
-  attach_function :PQgetvalue,            [:pg_result, :int, :int], :string
+  attach_function :PQgetvalue,            [:pg_result, :int, :int], :byte_array
   attach_function :PQgetlength,           [:pg_result, :int, :int], :int
   attach_function :PQgetisnull,           [:pg_result, :int, :int], :int
   attach_function :PQnparams,             [:pg_result], :int
