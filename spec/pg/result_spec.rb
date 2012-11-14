@@ -89,7 +89,6 @@ describe PG::Result do
   # it "should return the same bytes in binary format that are sent in binary format" do
   #   binary_file = File.join(Dir.pwd, 'spec/data', 'random_binary_data')
   #   bytes = File.open(binary_file, 'rb').read
-  #   require 'pry'; binding.pry
   #   res = @conn.exec('VALUES ($1::bytea)', 
   #     [ { :value => bytes, :format => 1 } ], 1)
   #     

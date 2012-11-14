@@ -512,7 +512,7 @@ From backend> T
     end
     conn.connect_poll.should == PG::PGRES_POLLING_FAILED
   end
-  #
+
   # it "discards previous results (if any) before waiting on an #async_exec"
   #
   # it "calls the block if one is provided to #async_exec" do
