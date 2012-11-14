@@ -907,7 +907,32 @@ module PG
     end
     alias_method :async_query, :async_exec
 
+    # call-seq:
+    #    conn.get_last_result( ) -> PG::Result
+    #
+    # This function retrieves all available results
+    # on the current connection (from previously issued
+    # asynchronous commands like +send_query()+) and
+    # returns the last non-NULL result, or +nil+ if no
+    # results are available.
+    #
+    # This function is similar to #get_result
+    # except that it is designed to get one and only
+    # one result.
     def get_last_result
+      prev = nil
+      cur = get_result
+
+      while !cur.nil?
+        prev.clear if prev
+        prev = cur
+
+        status = cur.result_status
+        break if status == PG::PGRES_COPY_OUT || status == PG::PGRES_COPY_IN
+        cur = get_result
+      end
+
+      prev
     end
 
     #/******     PGconn INSTANCE METHODS: Large Object Support     ******/
