@@ -453,7 +453,13 @@ module PG
       Result.checked(pg_result, self)
     end
 
-    def describe_portal
+    # call-seq:
+    #    conn.describe_portal( portal_name ) -> PG::Result
+    #
+    # Retrieve information about the portal _portal_name_.
+    def describe_portal(portal_name)
+      pg_result = Libpq.PQdescribePortal(@pg_conn, portal_name)
+      Result.checked(pg_result, self)
     end
 
     # call-seq:
