@@ -18,6 +18,10 @@ module PG
       return vstring
     end
 
+    def library_version
+      Libpq.PQlibVersion()
+    end
+
     # Convenience alias for PG::Connection.new.
     def connect( *args )
       return PG::Connection.new( *args )
@@ -26,7 +30,6 @@ module PG
     def isthreadsafe
       1 == Libpq.PQisthreadsafe()
     end
-
     alias_method :is_threadsafe?, :isthreadsafe
     alias_method :threadsafe?, :isthreadsafe
   end
