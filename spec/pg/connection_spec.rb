@@ -422,32 +422,30 @@ From backend> T
   #   results.should have( 2 ).members
   #   results.should include( "1\n", "2\n" )
   # end
-  #
-  #
-  # it "described_class#block shouldn't block a second thread" do
-  #   t = Thread.new do
-  #     @conn.send_query( "select pg_sleep(3)" )
-  #     @conn.block
-  #   end
-  #
-  #   # :FIXME: There's a race here, but hopefully it's pretty small.
-  #   t.should be_alive()
-  #
-  #   @conn.cancel
-  #   t.join
-  # end
-  #
-  # it "described_class#block should allow a timeout" do
-  #   @conn.send_query( "select pg_sleep(3)" )
-  #
-  #   start = Time.now
-  #   @conn.block( 0.1 )
-  #   finish = Time.now
-  #
-  #   (finish - start).should be_within( 0.05 ).of( 0.1 )
-  # end
-  #
-  #
+
+  it "described_class#block shouldn't block a second thread" do
+    t = Thread.new do
+      @conn.send_query( "select pg_sleep(3)" )
+      @conn.block
+    end
+
+    # :FIXME: There's a race here, but hopefully it's pretty small.
+    t.should be_alive()
+
+    @conn.cancel
+    t.join
+  end
+
+  it "described_class#block should allow a timeout" do
+    @conn.send_query( "select pg_sleep(3)" )
+
+    start = Time.now
+    @conn.block( 0.1 )
+    finish = Time.now
+
+    (finish - start).should be_within( 0.05 ).of( 0.1 )
+  end
+
   it "can encrypt a string given a password and username" do
     described_class.encrypt_password("postgres", "postgres").
       should =~ /\S+/
@@ -513,16 +511,16 @@ From backend> T
     conn.connect_poll.should == PG::PGRES_POLLING_FAILED
   end
 
-  # it "discards previous results (if any) before waiting on an #async_exec"
-  #
-  # it "calls the block if one is provided to #async_exec" do
-  #   result = nil
-  #   @conn.async_exec( "select 47 as one" ) do |pg_res|
-  #     result = pg_res[0]
-  #   end
-  #   result.should == { 'one' => '47' }
-  # end
-  #
+#  it "discards previous results (if any) before waiting on an #async_exec"
+
+  it "calls the block if one is provided to #async_exec" do
+    result = nil
+    @conn.async_exec( "select 47 as one" ) do |pg_res|
+      result = pg_res[0]
+    end
+    result.should == { 'one' => '47' }
+  end
+
   # it "raises a rescue-able error if #finish is called twice", :without_transaction do
   #   conn = PG.connect( @conninfo )
   #

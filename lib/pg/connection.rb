@@ -1,6 +1,7 @@
 # TODO: README
 
 require 'libc'
+require 'socket'
 
 module PG
   class Connection
@@ -745,7 +746,7 @@ module PG
     # After calling +consume_input+, you can check +is_busy+
     # or *notifies* to see if the state has changed.
     def consume_input
-      if 0 == Libpq.PQconsumeInput(@pg_conn, portal_name)
+      if 0 == Libpq.PQconsumeInput(@pg_conn)
         raise_pg_error
       end
 
@@ -893,17 +894,53 @@ module PG
       nil
     end
 
-    def block
+    # call-seq:
+    #   conn.block( [ timeout ] ) -> Boolean
+    #
+    # Blocks until the server is no longer busy, or until the
+    # optional _timeout_ is reached, whichever comes first.
+    # _timeout_ is measured in seconds and can be fractional.
+    #
+    # Returns +false+ if _timeout_ is reached, +true+ otherwise.
+    #
+    # If +true+ is returned, +conn.is_busy+ will return +false+
+    # and +conn.get_result+ will not block.
+    def block(timeout=nil)
+      socket = Socket.for_fd(self.socket)
+      consume_input
+
+      while is_busy
+        reader = IO.select([socket], nil, nil, timeout)
+        return false if reader.nil? # The select timed out
+        consume_input
+      end
+
+      true
     end
 
     def wait_for_notify
     end
     alias_method :notifies_wait, :wait_for_notify
 
-    def quote_ident
-    end
+    # call-seq:
+    #    conn.async_exec(sql [, params, result_format ] ) -> PG::Result
+    #    conn.async_exec(sql [, params, result_format ] ) {|pg_result| block }
+    #
+    # This function has the same behavior as #exec,
+    # except that it's implemented using asynchronous command
+    # processing and ruby's +rb_thread_select+ in order to
+    # allow other threads to process while waiting for the
+    # server to complete the request.
+    def async_exec(command, params=nil, result_format=0, &block)
+      # remove any remaining results from the queue
+      self.block # wait for input (without blocking) before reading the last result
+      get_last_result
 
-    def async_exec
+      send_query(command, params, result_format, &block)
+      self.block
+      result = get_last_result
+
+      yield_result(result, &block)
     end
     alias_method :async_query, :async_exec
 
