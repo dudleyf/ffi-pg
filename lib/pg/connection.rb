@@ -74,14 +74,14 @@ module PG
       from_len = str.length
       to_len = FFI::MemoryPointer.new(:int)
       to = Libpq.PQescapeBytea(from, from_len, to_len)
-      ret = to.read_bytes(to_len.read_int - 1)
+      ret = to.get_bytes(0, to_len.read_int - 1)
       ret
     end
 
     def self.unescape_bytea(str)
       to_len = FFI::MemoryPointer.new(:int)
       to = Libpq.PQunescapeBytea(str, to_len)
-      ret = to.read_bytes(to_len.read_int)
+      ret = to.get_bytes(0, to_len.read_int)
       ret
     end
 
@@ -548,7 +548,7 @@ module PG
 
       to = Libpq.PQescapeByteaConn(pg_conn, str, from_len, to_len)
 
-      ret = to.read_bytes(to_len.read_int - 1)
+      ret = to.get_bytes(0, to_len.read_int - 1)
       Libpq.PQfreemem(to)
       ret
     end

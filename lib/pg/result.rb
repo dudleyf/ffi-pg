@@ -335,7 +335,7 @@ module PG
         value_ptr = Libpq.PQgetvalue(@pg_result, tuple_num, field_num)
         value_len = getlength(tuple_num, field_num)
 
-        value = value_ptr.read_bytes(value_len)
+        value = value_ptr.get_bytes(0, value_len)
       end
     end
 
