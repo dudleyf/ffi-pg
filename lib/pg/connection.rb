@@ -553,6 +553,19 @@ module PG
       ret
     end
 
+
+    # call-seq:
+    #   conn.escape_literal( str ) -> String
+    #
+    # Escape an arbitrary String +str+ as a literal.
+    def escape_literal(str)
+      PG::Error.check_type(str, String)
+
+      escaped = Libpq.PQescapeLiteral(pg_conn, str, str.length)
+      raise_pg_error if escaped.nil?
+      escaped
+    end
+
     # call-seq:
     #   PG::Connection.unescape_bytea( string )
     #
