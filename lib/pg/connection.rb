@@ -261,6 +261,22 @@ module PG
       Libpq.PQstatus(@pg_conn)
     end
 
+    # TODO: Am I taking crazy pills? Is there not already a
+    # function for this?
+    def status_message
+      case status
+      when PG::CONNECTION_OK;                 "Connection OK."
+      when PG::CONNECTION_BAD;                "Connection bad."
+      when PG::CONNECTION_STARTED;            "Waiting for connection to be made."
+      when PG::CONNECTION_MADE;               "Connection OK; waiting to send."
+      when PG::CONNECTION_AWAITING_RESPONSE;  "Waiting for a response from the postmaster."
+      when PG::CONNECTION_AUTH_OK;            "Received authentication; waiting for backend startup."
+      when PG::CONNECTION_SETENV;             "Negotiating environment"
+      when PG::CONNECTION_SSL_STARTUP;        "Negotiating SSL."
+      when PG::CONNECTION_NEEDED;             "Internal state: connect() needed"
+      end
+    end
+
     def transaction_status
       Libpq.PQtransactionStatus(@pg_conn)
     end
