@@ -198,11 +198,11 @@ module PG
 
     # /******     PGconn INSTANCE METHODS: Connection Control     ******/
     def connect_poll
-      Libpq.PQconnectPoll(@pg_conn)
+      Libpq.PQconnectPoll(pg_conn)
     end
 
     def finish
-      Libpq.PQfinish(@pg_conn)
+      Libpq.PQfinish(pg_conn)
       @pg_conn = nil
     end
     alias_method :close, :finish
@@ -212,16 +212,16 @@ module PG
     end
 
     def reset
-      Libpq.PQreset(@pg_conn)
+      Libpq.PQreset(pg_conn)
     end
 
     def reset_start
-      raise_pg_error "reset has failed" if 0 == Libpq.PQresetStart(@pg_conn)
+      raise_pg_error "reset has failed" if 0 == Libpq.PQresetStart(pg_conn)
       nil
     end
 
     def reset_poll
-      Libpq.PQresetPoll(@pg_conn)
+      Libpq.PQresetPoll(pg_conn)
     end
 
     def conndefaults
@@ -230,35 +230,35 @@ module PG
 
     # /******     PGconn INSTANCE METHODS: Connection Status     ******/
     def db
-      Libpq.PQdb(@pg_conn)
+      Libpq.PQdb(pg_conn)
     end
 
     def user
-      Libpq.PQuser(@pg_conn)
+      Libpq.PQuser(pg_conn)
     end
 
     def pass
-      Libpq.PQpass(@pg_conn)
+      Libpq.PQpass(pg_conn)
     end
 
     def host
-      Libpq.PQhost(@pg_conn)
+      Libpq.PQhost(pg_conn)
     end
 
     def port
-      Libpq.PQhost(@pg_conn)
+      Libpq.PQhost(pg_conn)
     end
 
     def tty
-      Libpq.PQtty(@pg_conn)
+      Libpq.PQtty(pg_conn)
     end
 
     def options
-      Libpq.PQoptions(@pg_conn)
+      Libpq.PQoptions(pg_conn)
     end
 
     def status
-      Libpq.PQstatus(@pg_conn)
+      Libpq.PQstatus(pg_conn)
     end
 
     # TODO: Am I taking crazy pills? Is there not already a
@@ -278,41 +278,41 @@ module PG
     end
 
     def transaction_status
-      Libpq.PQtransactionStatus(@pg_conn)
+      Libpq.PQtransactionStatus(pg_conn)
     end
 
     def parameter_status(param_name)
-      Libpq.PQparameterStatus(@pg_conn, param_name)
+      Libpq.PQparameterStatus(pg_conn, param_name)
     end
 
     def protocol_version
-      Libpq.PQprotocolVersion(@pg_conn)
+      Libpq.PQprotocolVersion(pg_conn)
     end
 
     def server_version
-      Libpq.PQserverVersion(@pg_conn)
+      Libpq.PQserverVersion(pg_conn)
     end
 
     def error_message
-      Libpq.PQerrorMessage(@pg_conn)
+      Libpq.PQerrorMessage(pg_conn)
     end
 
     def socket
-      sd = Libpq.PQsocket(@pg_conn)
+      sd = Libpq.PQsocket(pg_conn)
       raise_pg_error("Can't get socket descriptor") if sd < 0
       sd
     end
 
     def backend_pid
-      Libpq.PQbackendPID(@pg_conn)
+      Libpq.PQbackendPID(pg_conn)
     end
 
     def connection_needs_password
-      1 == Libpq.PQconnectionNeedsPassword(@pg_conn)
+      1 == Libpq.PQconnectionNeedsPassword(pg_conn)
     end
 
     def connection_used_password
-      1 == Libpq.PQconnectionUsedPassword(@pg_conn)
+      1 == Libpq.PQconnectionUsedPassword(pg_conn)
     end
 
     # call-seq:
@@ -353,7 +353,7 @@ module PG
       PG::Error.check_type(command, String)
 
       if params.nil?
-        pg_result = Libpq.PQexec(@pg_conn, command)
+        pg_result = Libpq.PQexec(pg_conn, command)
         result = Result.checked(pg_result, self)
         if block_given?
           begin
@@ -367,7 +367,7 @@ module PG
 
       PG::Error.check_type(params, Array)
       p = BindParameters.new(params)
-      pg_result = Libpq.PQexecParams(@pg_conn, command, p.length, p.types, p.values, p.lengths, p.formats, result_format)
+      pg_result = Libpq.PQexecParams(pg_conn, command, p.length, p.types, p.values, p.lengths, p.formats, result_format)
       result = Result.checked(pg_result, self)
 
       if block_given?
@@ -414,7 +414,7 @@ module PG
         param_types.write_array_of_uint(0, in_paramtypes)
       end
 
-      pg_result = Libpq.PQprepare(@pg_conn, name, command, nparams, param_types)
+      pg_result = Libpq.PQprepare(pg_conn, name, command, nparams, param_types)
       Result.checked(pg_result, self)
     end
 
@@ -449,7 +449,7 @@ module PG
       PG::Error.check_type(name, String)
       PG::Error.check_type(params, Array)
       p = BindParameters.new(params)
-      pg_result = Libpq.PQexecPrepared(@pg_conn, name, p.length, p.values, p.lengths, p.formats, result_format)
+      pg_result = Libpq.PQexecPrepared(pg_conn, name, p.length, p.values, p.lengths, p.formats, result_format)
       result = Result.checked(pg_result, self)
       yield_result(result, &block)
     end
@@ -461,7 +461,7 @@ module PG
     # _statement_name_.
     def describe_prepared(name)
       PG::Error.check_type(name, String)
-      pg_result = Libpq.PQdescribePrepared(@pg_conn, name)
+      pg_result = Libpq.PQdescribePrepared(pg_conn, name)
       Result.checked(pg_result, self)
     end
 
@@ -470,7 +470,7 @@ module PG
     #
     # Retrieve information about the portal _portal_name_.
     def describe_portal(portal_name)
-      pg_result = Libpq.PQdescribePortal(@pg_conn, portal_name)
+      pg_result = Libpq.PQdescribePortal(pg_conn, portal_name)
       Result.checked(pg_result, self)
     end
 
@@ -489,7 +489,7 @@ module PG
     #  +PGRES_FATAL_ERROR+
     #  +PGRES_COPY_BOTH+
     def make_empty_pgresult(status)
-      pg_result = Libpq.PQmakeEmptyPGresult(@pg_conn, status.to_i)
+      pg_result = Libpq.PQmakeEmptyPGresult(pg_conn, status.to_i)
       Result.checked(pg_result, self)
     end
 
@@ -513,7 +513,7 @@ module PG
       buf = FFI::MemoryPointer.new(:char, 2*len+1)
       err = FFI::MemoryPointer.new(:int)
 
-      Libpq.PQescapeStringConn(@pg_conn, buf, str, len, err)
+      Libpq.PQescapeStringConn(pg_conn, buf, str, len, err)
 
       raise_pg_error if err.read_int != 0
       buf.read_string
@@ -546,7 +546,7 @@ module PG
       from_len = str.length
       to_len = FFI::MemoryPointer.new(:int)
 
-      to = Libpq.PQescapeByteaConn(@pg_conn, str, from_len, to_len)
+      to = Libpq.PQescapeByteaConn(pg_conn, str, from_len, to_len)
 
       ret = to.read_bytes(to_len.read_int - 1)
       Libpq.PQfreemem(to)
@@ -616,9 +616,9 @@ module PG
 
       # If called without parameters, use PQsendQuery
       if params.nil?
-        res = Libpq.PQsendQuery(@pg_conn, command)
+        res = Libpq.PQsendQuery(pg_conn, command)
         if res == 0
-          raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+          raise_pg_error(Libpq.PQerrorMessage(pg_conn))
         end
         return nil
       end
@@ -626,9 +626,9 @@ module PG
       # If called with parameters, use PQsendQueryParams
       PG::Error.check_type(params, Array)
       p = BindParameters.new(params)
-      res = Libpq.PQsendQueryParams(@pg_conn, command, p.length, p.types, p.values, p.lengths, p.formats, result_format)
+      res = Libpq.PQsendQueryParams(pg_conn, command, p.length, p.types, p.values, p.lengths, p.formats, result_format)
       if res == 0
-        raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+        raise_pg_error(Libpq.PQerrorMessage(pg_conn))
       end
       return nil
     end
@@ -665,9 +665,9 @@ module PG
         param_types.write_array_of_uint(0, in_paramtypes)
       end
 
-      res = Libpq.PQsendPrepare(@pg_conn, name, command, nparams, param_types)
+      res = Libpq.PQsendPrepare(pg_conn, name, command, nparams, param_types)
       if res == 0
-        raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+        raise_pg_error(Libpq.PQerrorMessage(pg_conn))
       end
       return nil
     end
@@ -701,9 +701,9 @@ module PG
       PG::Error.check_type(name, String)
 
       p = BindParameters.new(params)
-      res = Libpq.PQsendQueryPrepared(@pg_conn, name, p.length, p.types, p.values, p.lengths, p.formats, result_format)
+      res = Libpq.PQsendQueryPrepared(pg_conn, name, p.length, p.types, p.values, p.lengths, p.formats, result_format)
       if res == 0
-        raise_pg_error(Libpq.PQerrorMessage(@pg_conn))
+        raise_pg_error(Libpq.PQerrorMessage(pg_conn))
       end
       return nil
     end
@@ -714,7 +714,7 @@ module PG
     # Asynchronously send _command_ to the server. Does not block.
     # Use in combination with +conn.get_result+.
     def send_describe_prepared(stmt_name)
-      if 0 == Libpq.PQsendDescribePrepared(@pg_conn, stmt_name)
+      if 0 == Libpq.PQsendDescribePrepared(pg_conn, stmt_name)
         raise_pg_error
       end
 
@@ -727,7 +727,7 @@ module PG
     # Asynchronously send _command_ to the server. Does not block.
     # Use in combination with +conn.get_result+.
     def send_describe_portal
-      if 0 == Libpq.PQsendDescribePortal(@pg_conn, portal_name)
+      if 0 == Libpq.PQsendDescribePortal(pg_conn, portal_name)
         raise_pg_error
       end
 
@@ -749,7 +749,7 @@ module PG
     # and the PG::Result object will  automatically be cleared when the block terminates.
     # In this instance, <code>conn.exec</code> returns the value of the block.
     def get_result(&block)
-      pg_result = Libpq.PQgetResult(@pg_conn)
+      pg_result = Libpq.PQgetResult(pg_conn)
       return nil if pg_result.null?
       result = Result.new(pg_result, self)
       yield_result(result, &block)
@@ -762,7 +762,7 @@ module PG
     # After calling +consume_input+, you can check +is_busy+
     # or *notifies* to see if the state has changed.
     def consume_input
-      if 0 == Libpq.PQconsumeInput(@pg_conn)
+      if 0 == Libpq.PQconsumeInput(pg_conn)
         raise_pg_error
       end
 
@@ -775,7 +775,7 @@ module PG
     # Returns +true+ if a command is busy, that is, if
     # PQgetResult would block. Otherwise returns +false+.
     def is_busy
-      1 == Libpq.PQisBusy(@pg_conn)
+      1 == Libpq.PQisBusy(pg_conn)
     end
 
     # call-seq:
@@ -794,7 +794,7 @@ module PG
     # Returns +nil+.
     def setnonblocking(state)
       arg = !!state ? 1 : 0 # if state is true, 1, otherwise 0
-      if -1 == Libpq.PQsetnonblocking(@pg_conn, arg)
+      if -1 == Libpq.PQsetnonblocking(pg_conn, arg)
         raise_pg_error
       end
 
@@ -807,7 +807,7 @@ module PG
     # Returns +true+ if the connection is in a nonblocking
     # state. Otherwise returns +false+.
     def isnonblocking
-      1 == Libpq.PQisnonblocking(@pg_conn)
+      1 == Libpq.PQisnonblocking(pg_conn)
     end
     alias_method :nonblocking?, :isnonblocking
 
@@ -820,7 +820,7 @@ module PG
     # nonblocking.
     # Raises PG::Error if some other failure occurred.
     def flush
-      r = Libpq.PQflush(@pg_conn)
+      r = Libpq.PQflush(pg_conn)
       raise_pg_error if r == -1
       r == 1
     end
@@ -835,7 +835,7 @@ module PG
     # error message if a failure occurs.
     def cancel
       errbuf = FFI::Buffer.new(:char, 256, true)
-      pg_cancel = Libpq.PQgetCancel(@pg_conn)
+      pg_cancel = Libpq.PQgetCancel(pg_conn)
       raise PG::Error.new("Invalid connection!") if pg_cancel.null?
 
       r = Libpq.PQcancel(pg_cancel, errbuf, 256)
@@ -859,7 +859,7 @@ module PG
 
     #/******     PGconn INSTANCE METHODS: Control Functions     ******/
     def set_error_verbosity(in_verbosity)
-      Libpq.PQsetErrorVerbosity(@pg_conn, in_verbosity)
+      Libpq.PQsetErrorVerbosity(pg_conn, in_verbosity)
     end
 
     def trace(stream)
@@ -877,12 +877,12 @@ module PG
 
     #/******     PGconn INSTANCE METHODS: Other    ******/
     def get_client_encoding
-      Libpq.pg_encoding_to_char(Libpq.PQclientEncoding(@pg_conn))
+      Libpq.pg_encoding_to_char(Libpq.PQclientEncoding(pg_conn))
     end
 
     def set_client_encoding(str)
       PG::Error.check_type(str, String)
-      if -1 == Libpq.PQsetClientEncoding(@pg_conn, str)
+      if -1 == Libpq.PQsetClientEncoding(pg_conn, str)
         raise_pg_error "Invalid encoding name: #{str}"
       end
 
@@ -1042,7 +1042,7 @@ module PG
     private
 
     def raise_pg_error(msg=nil)
-      PG::Error.for_connection(@pg_conn, msg)
+      PG::Error.for_connection(pg_conn, msg)
     end
 
     def yield_result(result, &block)
@@ -1056,6 +1056,11 @@ module PG
       else
         result
       end
+    end
+
+    def pg_conn
+      raise PG::Error, "connection is closed" if @pg_conn.nil? or @pg_conn.null?
+      @pg_conn
     end
   end
 end

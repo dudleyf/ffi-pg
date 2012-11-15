@@ -521,13 +521,13 @@ From backend> T
     result.should == { 'one' => '47' }
   end
 
-  # it "raises a rescue-able error if #finish is called twice", :without_transaction do
-  #   conn = PG.connect( @conninfo )
-  #
-  #   conn.finish
-  #   expect { conn.finish }.to raise_error( PG::Error, /connection is closed/i )
-  # end
-  #
+   it "raises a rescue-able error if #finish is called twice", :without_transaction do
+     conn = PG.connect( @conninfo )
+
+     conn.finish
+     expect { conn.finish }.to raise_error( PG::Error, /connection is closed/i )
+   end
+
   #
   # context "under PostgreSQL 9", :postgresql_90 do
   #
