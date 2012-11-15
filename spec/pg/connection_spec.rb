@@ -125,7 +125,7 @@ describe PG::Connection do
   it "can connect asynchronously" do
     tmpconn = described_class.connect_start( @conninfo )
     tmpconn.should be_a( described_class )
-    socket = IO.for_fd( tmpconn.socket )
+    socket = FFI::IO.for_fd( tmpconn.socket, "r" )
     status = tmpconn.connect_poll
 
     while status != PG::PGRES_POLLING_OK
@@ -150,7 +150,7 @@ describe PG::Connection do
     described_class.connect_start(@conninfo) do |tmpconn|
       tmpconn.should be_a( described_class )
       conn = tmpconn
-      socket = IO.for_fd(tmpconn.socket)
+      socket = FFI::IO.for_fd(tmpconn.socket, "r")
       status = tmpconn.connect_poll
 
       while status != PG::PGRES_POLLING_OK
@@ -503,10 +503,10 @@ From backend> T
     serv = TCPServer.new( '127.0.0.1', 54320 )
     conn = described_class.connect_start( '127.0.0.1', 54320, "", "", "me", "xxxx", "somedb" )
     conn.connect_poll.should == PG::PGRES_POLLING_WRITING
-    select( nil, [IO.for_fd(conn.socket)], nil, 0.2 )
+    select( nil, [FFI::IO.for_fd(conn.socket, "w")], nil, 0.2 )
     serv.close
     if conn.connect_poll == PG::PGRES_POLLING_READING
-      select( [IO.for_fd(conn.socket)], nil, nil, 0.2 )
+      select( [FFI::IO.for_fd(conn.socket, "r")], nil, nil, 0.2 )
     end
     conn.connect_poll.should == PG::PGRES_POLLING_FAILED
   end

@@ -948,7 +948,7 @@ module PG
     # If +true+ is returned, +conn.is_busy+ will return +false+
     # and +conn.get_result+ will not block.
     def block(timeout=nil)
-      socket = Socket.for_fd(self.socket)
+      socket = FFI::IO.for_fd(self.socket, "r")
       consume_input
 
       while is_busy
