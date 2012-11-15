@@ -566,6 +566,19 @@ module PG
       escaped
     end
 
+
+    # call-seq:
+    #    conn.escape_identifier( str ) -> String
+    #
+    # Escape an arbitrary String +str+ as an identifier.
+    def escape_identifier(str)
+      PG::Error.check_type(str, String)
+
+      escaped = Libpq.PQescapeIdentifier(pg_conn, str, str.length)
+      raise_pg_error if escaped.nil?
+      escaped
+    end
+
     # call-seq:
     #   PG::Connection.unescape_bytea( string )
     #
